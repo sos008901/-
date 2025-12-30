@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
     <title>旅途誌 | Travel Assistant</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500&display=swap" rel="stylesheet">
@@ -25,7 +25,6 @@
                 <div id="date-navigator" class="date-scroll"></div>
                 <button class="add-day-pill" onclick="addNewDay()">+ 新增天數</button>
             </div>
-
             <div class="content-header">
                 <div class="title-group">
                     <h2 id="current-view-date">開始規劃</h2>
@@ -37,7 +36,6 @@
                     <span class="material-icons-round">add</span>
                 </button>
             </div>
-
             <div id="daily-list" class="timeline-container"></div>
         </section>
 
@@ -56,7 +54,7 @@
         <section id="notes" class="tab-content">
             <div class="card-glass">
                 <div class="card-title-ui"><span class="material-icons-round">history_edu</span><h2>旅行隨筆</h2></div>
-                <textarea id="noteInput" class="note-area" placeholder="寫下此時的心情..."></textarea>
+                <textarea id="noteInput" class="note-area" placeholder="在此刻寫下感受..."></textarea>
                 <button class="btn-submit" onclick="saveNote()">儲存隨筆</button>
             </div>
         </section>
@@ -82,7 +80,7 @@
                     <span class="material-icons-round">close</span>
                 </button>
             </div>
-            <div class="drawer-body">
+            <div class="form-body">
                 <input type="hidden" id="edit-id">
                 <div class="input-row-flex">
                     <div class="field date-f"><label>日期</label><input type="date" id="itemDate"></div>
@@ -91,7 +89,7 @@
                 <div class="field"><label>行程名稱</label><input type="text" id="itemTitle" placeholder="要去哪裡呢？"></div>
                 <div class="field"><label>詳細備註</label><textarea id="itemNote" placeholder="詳細紀錄..."></textarea></div>
                 <div class="field"><label>相關連結</label><input type="text" id="itemLink" placeholder="Google Maps URL"></div>
-                <button class="btn-save-itinerary" onclick="handleSave()">儲存並更新</button>
+                <button class="btn-save-itinerary" onclick="handleSave()">儲存行程</button>
             </div>
         </div>
     </div>
@@ -109,7 +107,7 @@
             <span class="material-icons-round">history_edu</span>
             <span class="nav-label">隨筆</span>
         </div>
-        <div class="nav-item" onclick="shoppingTab('shopping', this)">
+        <div class="nav-item" onclick="showTab('shopping', this)">
             <span class="material-icons-round">shopping_bag</span>
             <span class="nav-label">清單</span>
         </div>

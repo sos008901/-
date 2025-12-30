@@ -9,15 +9,15 @@ window.onload = () => {
     renderDateTabs();
     renderDailyList();
     initDragDrop();
-    initSwipeToClose(); // 初始化下滑關閉
+    initSwipeToClose();
     document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
 };
 
-// --- 修正：拖拽手柄功能 ---
+// --- 拖拽功能 ---
 function initDragDrop() {
     const el = document.getElementById('daily-list');
     Sortable.create(el, {
-        handle: '.drag-handle', // 只有點擊手柄才能拖動
+        handle: '.drag-handle',
         animation: 200,
         ghostClass: 'sortable-ghost',
         onEnd: function () {
@@ -30,7 +30,7 @@ function initDragDrop() {
     });
 }
 
-// --- 智能：下滑關閉功能 ---
+// --- 下滑關閉 ---
 function initSwipeToClose() {
     const swipeBar = document.getElementById('swipe-bar');
     const drawer = document.getElementById('bottom-drawer');
@@ -49,10 +49,8 @@ function initSwipeToClose() {
 
     swipeBar.addEventListener('touchend', (e) => {
         let deltaY = e.changedTouches[0].clientY - startY;
-        if (deltaY > 80) { // 下拉超過 80px 就關閉
-            closeForm();
-        }
-        drawer.style.transform = `translateY(0)`; // 回彈
+        if (deltaY > 80) closeForm();
+        drawer.style.transform = `translateY(0)`;
     });
 }
 
@@ -79,9 +77,7 @@ function renderDailyList() {
         card.className = 'itinerary-card';
         card.dataset.id = item.id;
         card.innerHTML = `
-            <div class="drag-handle">
-                <span class="material-icons-round">drag_indicator</span>
-            </div>
+            <div class="drag-handle"><span class="material-icons-round">drag_indicator</span></div>
             <div class="card-time">${item.time || '--:--'}</div>
             <div class="card-content">
                 <h3>${item.title}</h3>
@@ -97,13 +93,16 @@ function renderDailyList() {
     });
 }
 
-// --- 核心邏輯維持 ---
+// --- 介面管理 ---
 function showTab(tabId, el) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
 }
+
+// 支援清單頁面點擊
+function shoppingTab(tabId, el) { showTab(tabId, el); }
 
 function openForm(mode, id = null) {
     if (!currentSelectedDate && mode === 'add') return alert("請先新增天數");
@@ -164,9 +163,7 @@ function saveAndRefresh() {
 
 function closeForm() { 
     document.getElementById('bottom-drawer').style.transform = 'translateY(100%)';
-    setTimeout(() => {
-        document.getElementById('modal-overlay').style.display = 'none';
-    }, 200);
+    setTimeout(() => { document.getElementById('modal-overlay').style.display = 'none'; }, 200);
 }
 
 function renderDateTabs() {

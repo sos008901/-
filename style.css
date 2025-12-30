@@ -1,84 +1,47 @@
-/* 日式高級優雅風格 - 懸浮強化版 */
 :root {
     --bg-color: #FDFCF8;      
     --primary-color: #4A4E5A; 
     --accent-color: #A68B5B;  
-    --text-color: #333333;
     --border-color: #E0DDD5;
 }
 
 body {
-    font-family: "PingFang TC", "Noto Serif TC", serif;
-    margin: 0;
-    padding: 0;
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden; 
+    font-family: "PingFang TC", serif;
+    margin: 0; background: var(--bg-color); color: #333;
+    height: 100vh; overflow: hidden; display: flex; flex-direction: column;
 }
 
-/* 頂部標題美化 */
 header {
-    background: var(--bg-color);
-    text-align: center;
-    padding: 60px 0 20px 0;
+    padding: 60px 0 20px; text-align: center; background: var(--bg-color);
     border-bottom: 1px solid var(--border-color);
 }
 
-header h1 {
-    font-size: 1.2rem;
-    font-weight: 300;
-    letter-spacing: 8px;
-    margin: 0;
-    color: var(--primary-color);
-}
+header h1 { font-size: 1.2rem; letter-spacing: 8px; color: var(--primary-color); margin: 0; }
+.sub-title { font-size: 10px; color: var(--accent-color); letter-spacing: 3px; margin-top: 5px; }
 
-/* 主內容區 */
-main {
-    flex: 1;
-    padding: 30px 20px;
-    overflow-y: auto;
-    padding-bottom: 150px; /* 為懸浮欄預留更多空間 */
-}
+main { flex: 1; padding: 20px; overflow-y: auto; padding-bottom: 150px; }
 
-.tab-content { display: none; max-width: 500px; margin: 0 auto; animation: fadeIn 0.5s ease; }
+.tab-content { display: none; max-width: 450px; margin: 0 auto; animation: fadeIn 0.4s ease; }
 .tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* 列表美化 */
-li {
-    background: white;
-    padding: 18px;
-    margin-bottom: 15px;
-    border-radius: 8px; /* 增加一點圓角 */
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #F2F1ED;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.02);
-}
-
-/* --- 核心修改：懸浮式底部導覽 --- */
-.bottom-nav {
+/* 懸浮導覽列 - 核心設計 */
+.floating-nav {
     position: fixed;
-    bottom: 30px; /* 讓他漂浮在底部上方 */
+    bottom: calc(30px + env(safe-area-inset-bottom)); /* 避開 Home Bar */
     left: 50%;
-    transform: translateX(-50%); /* 居中 */
-    width: 90%; /* 寬度不佔滿，留兩邊空隙 */
-    max-width: 400px;
-    height: 65px;
-    background: rgba(255, 255, 255, 0.85); /* 霧面透明 */
-    backdrop-filter: blur(15px); /* 磨砂玻璃效果 */
-    border-radius: 40px; /* 膠囊形狀 */
+    transform: translateX(-50%);
+    width: 85%;
+    max-width: 380px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    border-radius: 35px;
     display: flex;
-    align-items: center;
     justify-content: space-around;
-    padding: 0 10px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08); /* 柔和深邃的陰影 */
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    align-items: center;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255, 255, 255, 0.6);
     z-index: 10000;
 }
 
@@ -86,24 +49,32 @@ li {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    color: #999;
-    letter-spacing: 1px;
+    color: #AAA;
+    transition: 0.3s;
     cursor: pointer;
-    transition: all 0.3s ease;
-    width: 20%;
-    height: 100%;
 }
 
-/* 點選時的狀態：變顏色並加一個小圓點 */
+.nav-item .material-icons-round { font-size: 24px; }
+.nav-item .nav-label { font-size: 10px; margin-top: 4px; letter-spacing: 1px; }
+
 .nav-item.active {
     color: var(--accent-color);
-    font-weight: bold;
+    transform: translateY(-2px);
 }
 
-.nav-item.active::after {
-    content: "•";
-    font-size: 10px;
-    margin-top: -2px;
+/* 內容區美化 */
+h2 { font-size: 1rem; color: var(--accent-color); font-weight: 400; margin-bottom: 20px; }
+input, textarea {
+    width: 100%; padding: 12px 5px; background: transparent;
+    border: none; border-bottom: 1px solid var(--border-color);
+    font-size: 16px; margin-bottom: 20px; outline: none;
+}
+button {
+    background: var(--primary-color); color: white; border: none;
+    padding: 10px 25px; border-radius: 4px; font-size: 14px;
+}
+li {
+    background: white; padding: 15px; margin-bottom: 10px;
+    border-radius: 12px; display: flex; justify-content: space-between;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03); border: 1px solid #F0EFEA;
 }

@@ -8,30 +8,51 @@ window.onload = () => {
     if (activeDates.length > 0 && !currentSelectedDate) currentSelectedDate = activeDates[0];
     renderDateTabs();
     renderDailyList();
-    initSortable(); // 初始化拖拽
+    initDragDrop();
+    initSwipeToClose(); // 初始化下滑關閉
     document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
 };
 
-// --- 核心：拖拽功能 ---
-function initSortable() {
+// --- 修正：拖拽手柄功能 ---
+function initDragDrop() {
     const el = document.getElementById('daily-list');
     Sortable.create(el, {
-        animation: 150,
+        handle: '.drag-handle', // 只有點擊手柄才能拖動
+        animation: 200,
         ghostClass: 'sortable-ghost',
-        dragClass: 'sortable-drag',
-        onEnd: function (evt) {
-            // 當拖拽結束時，重新排序資料陣列
-            const dateItems = itineraryData.filter(i => i.date === currentSelectedDate);
-            const otherItems = itineraryData.filter(i => i.date !== currentSelectedDate);
-            
-            // 根據 DOM 順序重新排列該日行程
-            const movedItem = dateItems.splice(evt.oldIndex, 1)[0];
-            dateItems.splice(evt.newIndex, 0, movedItem);
-            
-            // 合併並儲存
-            itineraryData = [...otherItems, ...dateItems];
+        onEnd: function () {
+            const newOrderIds = Array.from(el.querySelectorAll('.itinerary-card')).map(card => parseInt(card.dataset.id));
+            const otherDatesData = itineraryData.filter(i => i.date !== currentSelectedDate);
+            const thisDateData = newOrderIds.map(id => itineraryData.find(i => i.id === id)).filter(Boolean);
+            itineraryData = [...otherDatesData, ...thisDateData];
             localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
-        },
+        }
+    });
+}
+
+// --- 智能：下滑關閉功能 ---
+function initSwipeToClose() {
+    const swipeBar = document.getElementById('swipe-bar');
+    const drawer = document.getElementById('bottom-drawer');
+    let startY = 0;
+
+    swipeBar.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+    });
+
+    swipeBar.addEventListener('touchmove', (e) => {
+        let deltaY = e.touches[0].clientY - startY;
+        if (deltaY > 0) {
+            drawer.style.transform = `translateY(${deltaY}px)`;
+        }
+    });
+
+    swipeBar.addEventListener('touchend', (e) => {
+        let deltaY = e.changedTouches[0].clientY - startY;
+        if (deltaY > 80) { // 下拉超過 80px 就關閉
+            closeForm();
+        }
+        drawer.style.transform = `translateY(0)`; // 回彈
     });
 }
 
@@ -43,7 +64,7 @@ function renderDailyList() {
     list.innerHTML = '';
 
     if (!currentSelectedDate) {
-        dateTitle.innerText = "尚未開啟";
+        dateTitle.innerText = "開始規劃";
         deleteBtn.style.display = "none";
         return;
     }
@@ -58,14 +79,17 @@ function renderDailyList() {
         card.className = 'itinerary-card';
         card.dataset.id = item.id;
         card.innerHTML = `
+            <div class="drag-handle">
+                <span class="material-icons-round">drag_indicator</span>
+            </div>
             <div class="card-time">${item.time || '--:--'}</div>
             <div class="card-content">
                 <h3>${item.title}</h3>
                 ${item.note ? `<p>${item.note}</p>` : ''}
                 <div class="card-actions">
-                    <span class="btn-mini" onclick="openForm('edit', ${item.id})">編輯</span>
-                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-mini">地點</a>` : ''}
-                    <span class="btn-mini" style="color:#C66" onclick="deleteItem(${item.id})">移除</span>
+                    <span class="btn-m" onclick="openForm('edit', ${item.id})">編輯</span>
+                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-m">地點</a>` : ''}
+                    <span class="btn-m" style="color:#C66" onclick="deleteItem(${item.id})">移除</span>
                 </div>
             </div>
         `;
@@ -73,17 +97,18 @@ function renderDailyList() {
     });
 }
 
-// --- 其他功能 (維持) ---
+// --- 核心邏輯維持 ---
 function showTab(tabId, el) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
 }
 
 function openForm(mode, id = null) {
-    if (!currentSelectedDate && mode === 'add') return alert("請先新增旅遊天數");
+    if (!currentSelectedDate && mode === 'add') return alert("請先新增天數");
     document.getElementById('modal-overlay').style.display = 'flex';
+    document.getElementById('bottom-drawer').style.transform = 'translateY(0)';
     const editIdInput = document.getElementById('edit-id');
     
     if (mode === 'edit') {
@@ -137,7 +162,12 @@ function saveAndRefresh() {
     renderDailyList();
 }
 
-function closeForm() { document.getElementById('modal-overlay').style.display = 'none'; }
+function closeForm() { 
+    document.getElementById('bottom-drawer').style.transform = 'translateY(100%)';
+    setTimeout(() => {
+        document.getElementById('modal-overlay').style.display = 'none';
+    }, 200);
+}
 
 function renderDateTabs() {
     const nav = document.getElementById('date-navigator');

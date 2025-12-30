@@ -1,169 +1,38 @@
-/* 日式高級優雅風格定義 */
-:root {
-  --bg-color: #fdfcf8; /* 紙張色背景 */
-  --primary-color: #4a4e5a; /* 墨石灰 (主色) */
-  --accent-color: #a68b5b; /* 金檀木 (強調色) */
-  --text-color: #333333; /* 深炭色 */
-  --card-bg: #ffffff;
-  --border-color: #e0ddd5; /* 淺泥色邊框 */
-}
-
-body {
-  font-family: "PingFang TC", "Noto Serif TC", serif; /* 優先使用襯線體增加高級感 */
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  line-height: 1.6;
-}
-
-header {
-  background: var(--bg-color);
-  color: var(--primary-color);
-  text-align: center;
-  padding: 30px 0 10px 0;
-  border-bottom: 1px solid var(--border-color);
-  letter-spacing: 4px; /* 字體間距加寬增加優雅感 */
-}
-
-header h1 {
-  font-size: 1.2rem;
-  font-weight: 300;
-  margin: 0;
-}
-
-main {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  padding-bottom: 100px;
-}
-
-/* 內容區塊 */
-.tab-content {
-  display: none;
-  max-width: 500px;
-  margin: 0 auto;
-  animation: fadeIn 0.5s ease; /* 加入淡入動畫 */
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.tab-content.active {
-  display: block;
-}
-
-h2 {
-  font-size: 1rem;
-  color: var(--accent-color);
-  border-left: 3px solid var(--accent-color);
-  padding-left: 10px;
-  margin-bottom: 20px;
-  font-weight: 400;
-}
-
-/* 輸入框設計：極簡線條 */
-input,
-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 12px;
-  border: none;
-  border-bottom: 1px solid var(--border-color); /* 只保留底線 */
-  background: transparent;
-  font-size: 15px;
-  margin-bottom: 15px;
-  outline: none;
-  transition: border-color 0.3s;
-}
-
-input:focus {
-  border-bottom: 1px solid var(--accent-color);
-}
-
-/* 按鈕設計：優雅細邊框 */
-button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 10px 25px;
-  border-radius: 2px;
-  font-size: 14px;
-  letter-spacing: 1px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-button:hover {
-  background-color: var(--accent-color);
-  opacity: 0.9;
-}
-
-/* 清單樣式 */
-li {
-  background: var(--card-bg);
-  padding: 15px;
-  margin-bottom: 12px;
-  border-radius: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03); /* 極輕微投影 */
-  border: 1px solid #f0efea;
-}
-
-li span {
-  font-size: 15px;
-}
-
-/* 底部導覽列：輕盈質感 */
+/* 1. 修改底部導覽列，增加安全距離 */
 .bottom-nav {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(5px); /* 毛玻璃效果 */
-  display: flex;
-  border-top: 1px solid var(--border-color);
-  padding-bottom: env(safe-area-inset-bottom); /* 適應 iPhone X 以上底部 */
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.98); /* 稍微增加不透明度 */
+    backdrop-filter: blur(10px);
+    display: flex;
+    border-top: 1px solid var(--border-color);
+    
+    /* 核心修正：增加底部留白 */
+    /* env(safe-area-inset-bottom) 會自動偵測手機的橫條高度 */
+    /* 我們額外加上 15px 讓按鈕往上提一點，點起來更舒服 */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom)); 
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.03); /* 增加一點點陰影讓層次更分明 */
 }
 
 .bottom-nav button {
-  flex: 1;
-  background: none;
-  color: #888;
-  padding: 15px 0;
-  font-size: 12px;
-  border: none;
+    flex: 1;
+    background: none;
+    color: #888;
+    padding: 15px 0; /* 保持按鈕高度 */
+    font-size: 13px;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-.bottom-nav button:hover {
-  color: var(--accent-color);
+/* 2. 修改主內容區，確保底部內容不會被加高後的導覽列擋住 */
+main {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    /* 這裡也要同步增加，預留空間給變高的導覽列 */
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
 }
-
-/* 針對「分帳」顯示框的特別美化 */
-.bill-card {
-  background: #f9f8f4;
-  padding: 20px;
-  border: 1px dashed var(--border-color);
-  text-align: center;
-}
-
-#billResultText {
-  font-size: 1.2rem;
-  color: var(--primary-color);
-  margin-top: 15px;
-}
-

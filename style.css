@@ -1,106 +1,102 @@
 :root {
     --bg: #F9F8F5;
+    --card: #FFFFFF;
     --primary: #3A3D42;
     --accent: #9E855D;
-    --white: #FFFFFF;
     --border: #E8E6E0;
-    --shadow: 0 10px 30px rgba(0,0,0,0.05);
+    --red: #D66D67;
 }
 
 body {
     font-family: 'Noto Serif TC', serif;
     background: var(--bg); color: var(--primary);
-    margin: 0; height: 100vh; overflow: hidden;
-    display: flex; flex-direction: column;
+    margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column;
 }
 
-/* --- 分頁核心：確保不重疊 --- */
-.tab-content {
-    display: none; /* 預設隱藏所有分頁 */
-    max-width: 500px;
-    margin: 0 auto;
-}
+/* 嚴格分頁隱藏 */
+.tab-content { display: none; max-width: 480px; margin: 0 auto; width: 100%; }
+.tab-content.active { display: block; }
 
-.tab-content.active {
-    display: block; /* 只顯示 active 的分頁 */
-}
-
-/* 頂部導覽 */
-header { padding: 50px 0 20px; text-align: center; }
-header h1 { font-size: 1.4rem; letter-spacing: 12px; margin: 0; font-weight: 500; }
+header { padding: 45px 0 15px; text-align: center; }
+header h1 { font-size: 1.3rem; letter-spacing: 10px; margin: 0; font-weight: 500; }
 .divider { display: block; width: 15px; height: 1px; background: var(--accent); margin: 8px auto; }
 header p { font-size: 9px; color: var(--accent); letter-spacing: 4px; }
 
 main { flex: 1; overflow-y: auto; padding: 0 20px 180px; }
 
-/* 日期滑動選擇器 */
+/* 日期滑動區域 */
 .section-top { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
 .date-scroll-wrapper { display: flex; overflow-x: auto; gap: 10px; flex: 1; scrollbar-width: none; }
 .date-scroll-wrapper::-webkit-scrollbar { display: none; }
 .date-item {
-    min-width: 55px; height: 75px; border-radius: 14px;
-    background: white; border: 1px solid var(--border);
+    min-width: 55px; height: 75px; border-radius: 12px; background: white; border: 1px solid var(--border);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.date-item.active { background: var(--primary); color: white; border-color: var(--primary); }
+.date-item.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
 .date-item strong { font-size: 16px; margin-bottom: 2px; }
 .date-item span { font-size: 10px; opacity: 0.6; }
 
-.btn-add-day { background: none; border: 1px dashed var(--accent); color: var(--accent); border-radius: 14px; width: 55px; height: 75px; cursor: pointer; }
+.btn-add-day-outline { background: none; border: 1px dashed var(--accent); color: var(--accent); border-radius: 12px; width: 55px; height: 75px; cursor: pointer; }
 
-/* 行程管理標題 */
-.itinerary-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; }
-.date-display h2 { font-size: 1.2rem; margin: 0; font-weight: 500; }
-.btn-delete-small { background: none; border: none; color: #D66; display: flex; align-items: center; gap: 4px; padding: 0; margin-top: 8px; cursor: pointer; font-size: 11px; opacity: 0.7; }
+/* 行程標題與刪除按鈕 */
+.itinerary-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+.current-info { display: flex; align-items: center; gap: 12px; }
+.current-info h2 { font-size: 1.2rem; margin: 0; font-weight: 500; }
 
-/* 行程卡片設計 */
-.itinerary-card {
-    background: white; border-radius: 20px; padding: 20px; margin-bottom: 16px;
-    display: flex; gap: 18px; border: 1px solid var(--border); box-shadow: var(--shadow);
+.btn-delete-action {
+    background: #FFF; border: 1px solid #EEE; color: var(--red); width: 34px; height: 34px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s;
 }
-.card-time { color: var(--accent); font-weight: 500; font-size: 13px; min-width: 45px; padding-top: 2px; }
-.card-content { flex: 1; }
-.card-content h3 { margin: 0 0 6px 0; font-size: 16px; font-weight: 500; }
-.card-content p { margin: 0; font-size: 12px; color: #888; line-height: 1.6; }
-.card-btns { margin-top: 15px; display: flex; gap: 12px; }
-.btn-card-action { font-size: 11px; color: #999; border: 1px solid #EEE; padding: 4px 12px; border-radius: 8px; cursor: pointer; text-decoration: none; }
+.btn-delete-action:active { background: #FFF5F5; transform: scale(0.9); }
+.btn-delete-action span { font-size: 18px; }
 
-/* 底部彈出表單 (Bottom Sheet) */
+/* 行程卡片 */
+.itinerary-card {
+    background: white; border-radius: 18px; padding: 20px; margin-bottom: 15px;
+    display: flex; gap: 15px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+}
+.card-time { color: var(--accent); font-weight: 500; font-size: 13px; min-width: 45px; }
+.card-content { flex: 1; }
+.card-content h3 { margin: 0 0 5px; font-size: 16px; font-weight: 500; }
+.card-content p { font-size: 12px; color: #888; margin: 0; line-height: 1.6; }
+.card-actions { margin-top: 15px; display: flex; gap: 12px; }
+.btn-text { font-size: 11px; color: #999; border: 1px solid #F0F0F0; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+
+/* 彈出式表單美化 */
 .modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(8px);
     z-index: 20000; display: flex; align-items: flex-end; justify-content: center;
 }
 .bottom-sheet {
-    background: white; width: 100%; max-width: 500px; border-radius: 30px 30px 0 0;
-    padding: 15px 25px 50px; animation: slideUp 0.35s cubic-bezier(0, 0, 0.2, 1);
+    background: white; width: 100%; max-width: 500px; border-radius: 28px 28px 0 0;
+    padding: 15px 25px 40px; animation: slideUp 0.35s ease-out;
 }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-.sheet-handle { width: 40px; height: 4px; background: #EEE; border-radius: 2px; margin: 0 auto 20px; }
+.sheet-indicator { width: 40px; height: 4px; background: #EEE; border-radius: 2px; margin: 0 auto 15px; }
 .sheet-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-.btn-close-modal { background: #F5F5F5; border: none; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; }
+.btn-close-modal { background: #F5F5F5; border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
 
-.field { margin-bottom: 18px; }
-.field label { font-size: 10px; color: var(--accent); display: block; margin-bottom: 8px; letter-spacing: 1px; font-weight: 500; }
-.field input, .field textarea { width: 100%; border: 1px solid var(--border); padding: 14px; border-radius: 12px; background: #FAF9F7; outline: none; font-size: 15px; box-sizing: border-box; }
-.form-grid { display: flex; gap: 12px; }
-.btn-save-itinerary { width: 100%; background: var(--primary); color: white; border: none; padding: 18px; border-radius: 15px; font-size: 16px; font-weight: 500; margin-top: 10px; }
+.field { margin-bottom: 15px; }
+.field label { font-size: 10px; color: var(--accent); display: block; margin-bottom: 6px; letter-spacing: 1px; }
+.field input, .field textarea { width: 100%; border: 1px solid var(--border); padding: 12px; border-radius: 10px; background: #FAF9F6; outline: none; font-size: 14px; box-sizing: border-box; }
+.grid-2 { display: flex; gap: 10px; }
+.btn-submit-form { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 15px; margin-top: 10px; }
 
-/* 功能卡片設計 (分帳/隨筆) */
-.card-ui { background: white; border-radius: 25px; padding: 30px; border: 1px solid var(--border); box-shadow: var(--shadow); }
-.card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; color: var(--accent); }
-.card-header h2 { font-size: 1.1rem; margin: 0; font-weight: 500; color: var(--primary); }
-.btn-primary-full { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 14px; margin-top: 20px; font-size: 15px; }
+/* 通用功能組件 */
+.card-ui { background: white; border-radius: 24px; padding: 25px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
+.card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--accent); }
+.card-header h2 { font-size: 1.1rem; margin: 0; color: var(--primary); }
+.btn-primary-dark { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 14px; margin-top: 15px; }
 
-/* 底部懸浮導覽 */
-.dock-nav {
+/* 底部導覽 */
+.premium-nav {
     position: fixed; bottom: 35px; left: 50%; transform: translateX(-50%);
-    width: 92%; height: 75px; background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(20px); border-radius: 35px; display: flex; align-items: center;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.08); border: 1px solid rgba(255, 255, 255, 0.5); z-index: 10000;
+    width: 90%; height: 75px; background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(15px); border-radius: 35px; display: flex; align-items: center;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid rgba(255, 255, 255, 0.5); z-index: 10000;
 }
-.nav-btn { flex: 1; text-align: center; color: #BBB; display: flex; flex-direction: column; align-items: center; transition: 0.3s; }
+.nav-btn { flex: 1; text-align: center; color: #BBB; display: flex; flex-direction: column; align-items: center; }
 .nav-btn.active { color: var(--primary); }
-.nav-btn span:first-child { font-size: 26px; margin-bottom: 4px; }
-.nav-btn .label { font-size: 10px; letter-spacing: 1px; }
-
-.btn-fab { background: var(--primary); color: white; border: none; width: 50px; height: 50px; border-radius: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(0,0,0,0.15); }
+.nav-btn span:first-child { font-size: 26px; margin-bottom: 2px; }
+.nav-text { font-size: 9px; letter-spacing: 1px; }
+.btn-fab-add { background: var(--primary); color: white; border: none; width: 48px; height: 48px; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }

@@ -5,14 +5,15 @@
     --border: #E8E6E0;
 }
 
-/* --- 核心修正：穩定性設定 --- */
+/* --- 極致穩定性修正：禁止縮放與晃動 --- */
 html, body {
     margin: 0; padding: 0;
-    width: 100%; height: 100%;
-    /* 禁止整個頁面縮放與晃動 */
-    overflow: hidden; 
-    overscroll-behavior: none; 
-    position: fixed; /* 強制鎖定，避免 iOS 回彈 */
+    width: 100vw; height: 100vh;
+    overflow: hidden; /* 禁止外層晃動 */
+    overscroll-behavior: none; /* 禁止下拉刷新效果 */
+    position: fixed; /* 鎖定背景 */
+    -webkit-text-size-adjust: 100%; /* 禁止系統調整字體大小 */
+    touch-action: manipulation; /* 核心：禁止雙擊縮放 */
 }
 
 body {
@@ -21,12 +22,13 @@ body {
     display: flex; flex-direction: column;
 }
 
-/* 確保輸入框在聚焦時不會放大 */
+/* 解決 iPhone 自動縮放輸入框：字體必須大於等於 16px */
 input, textarea, select {
     font-size: 16px !important; 
+    touch-action: manipulation;
 }
 
-/* --- 原有樣式優化 --- */
+/* --- 佈局樣式 --- */
 .tab-content { display: none; width: 100%; max-width: 500px; margin: 0 auto; }
 .tab-content.active { display: block; }
 
@@ -35,58 +37,40 @@ header h1 { font-size: 1.3rem; letter-spacing: 10px; margin: 0; font-weight: 500
 .divider { display: block; width: 15px; height: 1px; background: var(--accent); margin: 8px auto; }
 header p { font-size: 9px; color: var(--accent); letter-spacing: 4px; }
 
-/* 只有內容區域可以滑動 */
+/* 只有此區域可以垂直滑動 */
 main { 
     flex: 1; 
     overflow-y: auto; 
-    -webkit-overflow-scrolling: touch; /* 滑動順暢感 */
+    -webkit-overflow-scrolling: touch; 
     padding: 0 20px 180px; 
+    touch-action: pan-y; /* 只允許上下滑動 */
 }
 
 /* 日期滑動 */
 .date-section { display: flex; align-items: center; gap: 10px; margin-bottom: 25px; }
-.date-scroll { display: flex; overflow-x: auto; gap: 10px; flex: 1; scrollbar-width: none; }
+.date-scroll { 
+    display: flex; overflow-x: auto; gap: 10px; flex: 1; scrollbar-width: none;
+    touch-action: pan-x; /* 只允許左右滑動 */
+}
 .date-scroll::-webkit-scrollbar { display: none; }
 .date-item {
     min-width: 55px; height: 75px; border-radius: 12px; background: white; border: 1px solid var(--border);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.date-item.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.date-item.active { background: var(--primary); color: white; border-color: var(--primary); }
 .add-day-pill { background: none; border: 1px dashed var(--accent); color: var(--accent); border-radius: 12px; height: 75px; padding: 0 12px; font-size: 12px; }
-
-/* 標題與按鈕 */
-.content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-.title-group { display: flex; align-items: center; gap: 12px; }
-.title-group h2 { font-size: 1.4rem; margin: 0; font-weight: 500; }
-.icon-btn-delete { background: white; border: 1px solid #EEE; color: #D66; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-.fab-add { background: var(--primary); color: white; border: none; width: 48px; height: 48px; border-radius: 15px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
 
 /* 行程卡片 */
 .itinerary-card {
     background: white; border-radius: 18px; padding: 18px; margin-bottom: 12px;
     display: flex; align-items: flex-start; gap: 12px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03);
 }
-.drag-handle { color: #CCC; padding: 5px 0; cursor: grab; touch-action: none; }
+.drag-handle { color: #CCC; padding: 5px 0; cursor: grab; }
 .card-time { color: var(--accent); font-weight: 500; font-size: 13px; min-width: 45px; padding-top: 5px; }
 .card-content h3 { margin: 0 0 5px; font-size: 16px; font-weight: 500; }
 .card-content p { font-size: 12px; color: #888; margin: 0; line-height: 1.6; }
-.card-actions { margin-top: 12px; display: flex; gap: 10px; }
-.btn-m { font-size: 11px; color: #999; border: 1px solid #F0F0F0; padding: 4px 10px; border-radius: 6px; }
 
-/* 底部彈出式表單 */
-.modal-blur { position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(8px); z-index: 20000; display: flex; align-items: flex-end; justify-content: center; }
-.bottom-drawer { background: white; width: 100%; max-width: 500px; border-radius: 25px 25px 0 0; padding: 10px 25px 50px; transition: transform 0.2s ease-out; }
-.drawer-handle { width: 50px; height: 5px; background: #DDD; border-radius: 3px; margin: 5px auto 15px; cursor: ns-resize; }
-
-.input-row-flex { display: flex; gap: 15px; margin-bottom: 15px; }
-.field { margin-bottom: 15px; }
-.date-f { flex: 1.5; }
-.time-f { flex: 1; }
-.field label { font-size: 11px; color: var(--accent); display: block; margin-bottom: 6px; }
-.field input, .field textarea { width: 100%; border: 1px solid var(--border); padding: 12px; border-radius: 12px; background: #FAF9F6; outline: none; box-sizing: border-box; }
-.btn-save-itinerary { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 15px; }
-
-/* 導覽列 */
+/* 底部導覽列 (徹底固定) */
 .app-navbar {
     position: fixed !important; bottom: 35px; left: 50%; transform: translateX(-50%);
     width: 90%; height: 75px; background: rgba(255, 255, 255, 0.98);
@@ -96,7 +80,7 @@ main {
 }
 .nav-item { flex: 1; text-align: center; color: #BBB; display: flex; flex-direction: column; align-items: center; }
 .nav-item.active { color: var(--primary); }
-.nav-label { font-size: 10px; margin-top: 2px; }
 
-.card-glass { background: white; border-radius: 24px; padding: 25px; border: 1px solid var(--border); box-shadow: 0 10px 25px rgba(0,0,0,0.04); }
-.btn-submit { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 12px; margin-top: 15px; }
+/* 其他按鈕 */
+.fab-add { background: var(--primary); color: white; border: none; width: 48px; height: 48px; border-radius: 15px; display: flex; align-items: center; justify-content: center; }
+.icon-btn-delete { background: white; border: 1px solid #EEE; color: #D66; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }

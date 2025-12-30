@@ -1,3 +1,4 @@
+// --- 資料持久化 ---
 let itineraryData = JSON.parse(localStorage.getItem('itineraryData')) || [];
 let activeDates = JSON.parse(localStorage.getItem('activeDates')) || [];
 let currentSelectedDate = localStorage.getItem('lastSelectedDate') || "";
@@ -11,32 +12,53 @@ window.onload = () => {
     document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
 };
 
-// --- 表單控制 ---
-
-function openAddForm() {
-    if (!currentSelectedDate) return alert("請先新增旅遊天數");
-    document.getElementById('form-title').innerText = "新增行程";
-    document.getElementById('edit-id').value = ""; // 清空 ID 代表新增
-    document.getElementById('itemDate').value = currentSelectedDate;
-    document.getElementById('itemTime').value = "";
-    document.getElementById('itemTitle').value = "";
-    document.getElementById('itemNote').value = "";
-    document.getElementById('itemLink').value = "";
-    document.getElementById('modal-overlay').style.display = 'flex';
+// --- 分頁隔離功能 (關鍵修正) ---
+function showTab(tabId, el) {
+    // 1. 隱藏所有分頁內容
+    const allTabs = document.querySelectorAll('.tab-content');
+    allTabs.forEach(tab => tab.classList.remove('active'));
+    
+    // 2. 顯示點選的分頁內容
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) targetTab.classList.add('active');
+    
+    // 3. 更新導覽列按鈕狀態
+    const allNavBtns = document.querySelectorAll('.nav-btn');
+    allNavBtns.forEach(btn => btn.classList.remove('active'));
+    if (el) el.classList.add('active');
+    
+    // 4. 切換後自動滾動回頁面頂部
+    document.getElementById('scroll-area').scrollTop = 0;
 }
 
-function editItem(id) {
-    const item = itineraryData.find(i => i.id === id);
-    if (!item) return;
+// --- 表單邏輯：支援新增與編輯 ---
+function openForm(mode, id = null) {
+    if (!currentSelectedDate && mode === 'add') return alert("請先新增旅遊天數");
     
-    document.getElementById('form-title').innerText = "編輯行程";
-    document.getElementById('edit-id').value = item.id;
-    document.getElementById('itemDate').value = item.date;
-    document.getElementById('itemTime').value = item.time;
-    document.getElementById('itemTitle').value = item.title;
-    document.getElementById('itemNote').value = item.note;
-    document.getElementById('itemLink').value = item.link;
-    document.getElementById('modal-overlay').style.display = 'flex';
+    const overlay = document.getElementById('modal-overlay');
+    const title = document.getElementById('form-title');
+    const editIdInput = document.getElementById('edit-id');
+    
+    overlay.style.display = 'flex';
+    
+    if (mode === 'edit') {
+        const item = itineraryData.find(i => i.id === id);
+        title.innerText = "編輯行程項目";
+        editIdInput.value = item.id;
+        document.getElementById('itemDate').value = item.date;
+        document.getElementById('itemTime').value = item.time;
+        document.getElementById('itemTitle').value = item.title;
+        document.getElementById('itemNote').value = item.note;
+        document.getElementById('itemLink').value = item.link;
+    } else {
+        title.innerText = "新增行程項目";
+        editIdInput.value = "";
+        document.getElementById('itemDate').value = currentSelectedDate;
+        document.getElementById('itemTime').value = "";
+        document.getElementById('itemTitle').value = "";
+        document.getElementById('itemNote').value = "";
+        document.getElementById('itemLink').value = "";
+    }
 }
 
 function closeForm() {
@@ -46,7 +68,7 @@ function closeForm() {
 function handleSave() {
     const title = document.getElementById('itemTitle').value;
     const editId = document.getElementById('edit-id').value;
-    if (!title) return alert("請填寫景點名稱");
+    if (!title) return alert("請填寫地點名稱");
 
     const data = {
         id: editId ? parseInt(editId) : Date.now(),
@@ -58,11 +80,9 @@ function handleSave() {
     };
 
     if (editId) {
-        // 編輯模式：替換舊資料
-        const index = itineraryData.findIndex(i => i.id === data.id);
-        itineraryData[index] = data;
+        const idx = itineraryData.findIndex(i => i.id === data.id);
+        itineraryData[idx] = data;
     } else {
-        // 新增模式
         itineraryData.push(data);
     }
 
@@ -70,8 +90,7 @@ function handleSave() {
     closeForm();
 }
 
-// --- 資料與渲染 ---
-
+// --- 行程與天數渲染 ---
 function saveAndRefresh() {
     localStorage.setItem('activeDates', JSON.stringify(activeDates));
     localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
@@ -121,9 +140,9 @@ function renderDailyList() {
                 <h3>${item.title}</h3>
                 ${item.note ? `<p>${item.note}</p>` : ''}
                 <div class="card-btns">
-                    <span class="btn-small" onclick="editItem(${item.id})">編輯</span>
-                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-small">地點</a>` : ''}
-                    <span class="btn-small" style="color:#C66" onclick="deleteItem(${item.id})">移除</span>
+                    <span class="btn-card-action" onclick="openForm('edit', ${item.id})">編輯</span>
+                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-card-action">地點</a>` : ''}
+                    <span class="btn-card-action" style="color:#C66" onclick="deleteItem(${item.id})">移除</span>
                 </div>
             </div>
         `;
@@ -131,8 +150,7 @@ function renderDailyList() {
     });
 }
 
-// --- 輔助功能 ---
-
+// --- 輔助管理功能 ---
 function addNewDay() {
     let next;
     if (activeDates.length === 0) next = new Date().toISOString().split('T')[0];
@@ -160,20 +178,24 @@ function deleteItem(id) {
     saveAndRefresh();
 }
 
-function showTab(tabId, el) {
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    if(el) el.classList.add('active');
-}
-
 function calculateBill() {
     const a = document.getElementById('billAmount').value;
     const p = document.getElementById('billPeople').value;
-    if (a > 0 && p > 0) document.getElementById('billResultText').innerText = `平均：$ ${Math.ceil(a/p)}`;
+    if (a > 0 && p > 0) document.getElementById('billResultText').innerText = `平均每人：$ ${Math.ceil(a/p)}`;
 }
 
 function saveNote() {
     localStorage.setItem('travelNote', document.getElementById('noteInput').value);
-    alert("內容已存檔");
+    alert("隨筆已成功儲存");
+}
+
+function addItem(type) {
+    const input = document.getElementById('shoppingInput');
+    const list = document.getElementById('shoppingList');
+    if (!input.value.trim()) return;
+    const li = document.createElement('li');
+    li.style = "background:white; padding:15px; margin-bottom:10px; border-radius:12px; display:flex; justify-content:space-between; border:1px solid #EEE;";
+    li.innerHTML = `<span>${input.value}</span><span style="color:#C66" onclick="this.parentElement.remove()">移除</span>`;
+    list.appendChild(li);
+    input.value = '';
 }

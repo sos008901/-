@@ -1,67 +1,62 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>我的旅遊助手</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅途誌 | Travel Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
     <header>
-      <h1>🌍 旅遊助手</h1>
+        <h1>旅 途 誌</h1>
+        <div style="font-size: 10px; color: #A68B5B; margin-top: 5px; letter-spacing: 2px;">TRAVEL ASSISTANT</div>
     </header>
 
     <main id="app">
-      <section id="itinerary" class="tab-content active">
-        <h2>📅 行程安排</h2>
-        <div class="input-group">
-          <input
-            type="text"
-            id="itineraryInput"
-            placeholder="輸入行程內容..."
-          />
-          <button onclick="addItem('itinerary')">新增</button>
-        </div>
-        <ul id="itineraryList"></ul>
-      </section>
+        <section id="itinerary" class="tab-content active">
+            <h2>行程規劃</h2>
+            <div class="input-group">
+                <input type="text" id="itineraryInput" placeholder="輸入目的地或行程...">
+                <button onclick="addItem('itinerary')">加入</button>
+            </div>
+            <ul id="itineraryList"></ul>
+        </section>
 
-      <section id="splitBill" class="tab-content">
-        <h2>💰 旅遊分帳</h2>
-        <div class="bill-card">
-          <input type="number" id="billAmount" placeholder="總金額" />
-          <input type="number" id="billPeople" placeholder="分攤人數" />
-          <button onclick="calculateBill()">計算</button>
-          <p id="billResultText">平均每人：$0</p>
-        </div>
-      </section>
+        <section id="splitBill" class="tab-content">
+            <h2>費用分攤</h2>
+            <div class="bill-card">
+                <input type="number" id="billAmount" placeholder="輸入支出總金額">
+                <input type="number" id="billPeople" placeholder="輸入分攤人數">
+                <button onclick="calculateBill()">計算結果</button>
+                <p id="billResultText">平均每人：$0</p>
+            </div>
+        </section>
 
-      <section id="notes" class="tab-content">
-        <h2>📝 旅遊記事本</h2>
-        <textarea
-          id="noteInput"
-          placeholder="寫下旅遊心得或重要資訊..."
-        ></textarea>
-        <button onclick="saveNote()">儲存記事</button>
-        <p id="noteStatus"></p>
-      </section>
+        <section id="notes" class="tab-content">
+            <h2>旅行隨筆</h2>
+            <textarea id="noteInput" placeholder="記下此刻的心情或重要事項..."></textarea>
+            <button onclick="saveNote()">儲存記事</button>
+            <p id="noteStatus"></p>
+        </section>
 
-      <section id="shopping" class="tab-content">
-        <h2>🛒 購物清單</h2>
-        <div class="input-group">
-          <input type="text" id="shoppingInput" placeholder="想買什麼？" />
-          <button onclick="addItem('shopping')">新增</button>
-        </div>
-        <ul id="shoppingList"></ul>
-      </section>
+        <section id="shopping" class="tab-content">
+            <h2>購物清單</h2>
+            <div class="input-group">
+                <input type="text" id="shoppingInput" placeholder="想帶回家的紀念品？">
+                <button onclick="addItem('shopping')">新增</button>
+            </div>
+            <ul id="shoppingList"></ul>
+        </section>
     </main>
 
     <nav class="bottom-nav">
-      <button onclick="showTab('itinerary')">行程</button>
-      <button onclick="showTab('splitBill')">分帳</button>
-      <button onclick="showTab('notes')">記事</button>
-      <button onclick="showTab('shopping')">清單</button>
+        <button onclick="showTab('itinerary')">行程</button>
+        <button onclick="showTab('splitBill')">分帳</button>
+        <button onclick="showTab('notes')">隨筆</button>
+        <button onclick="showTab('shopping')">清單</button>
     </nav>
 
     <script src="script.js"></script>
-  </body>
+</body>
 </html>

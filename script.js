@@ -1,4 +1,4 @@
-// --- 核武級：暴力禁止縮放指令 ---
+// --- 禁止縮放的核心指令 ---
 document.addEventListener('touchstart', function(event) {
     if (event.touches.length > 1) {
         event.preventDefault(); // 禁止雙指縮放
@@ -14,12 +14,11 @@ document.addEventListener('touchend', function(event) {
     lastTouchEnd = now;
 }, false);
 
-// 禁止手勢縮放 (針對 Safari)
 document.addEventListener('gesturestart', function(event) {
-    event.preventDefault();
+    event.preventDefault(); // 攔截 Safari 的縮放手勢
 });
 
-// --- 原有功能 ---
+// --- 資料與功能邏輯 ---
 let itineraryData = JSON.parse(localStorage.getItem('itineraryData')) || [];
 let activeDates = JSON.parse(localStorage.getItem('activeDates')) || [];
 let currentSelectedDate = localStorage.getItem('lastSelectedDate') || "";
@@ -40,6 +39,7 @@ function initDragDrop() {
     Sortable.create(el, {
         handle: '.drag-handle',
         animation: 200,
+        ghostClass: 'sortable-ghost',
         onEnd: function () {
             const newOrderIds = Array.from(el.querySelectorAll('.itinerary-card')).map(card => parseInt(card.dataset.id));
             const otherDatesData = itineraryData.filter(i => i.date !== currentSelectedDate);
@@ -66,7 +66,6 @@ function initSwipeToClose() {
     });
 }
 
-// 渲染與操作邏輯維持...
 function renderDailyList() {
     const list = document.getElementById('daily-list');
     const dateTitle = document.getElementById('current-view-date');

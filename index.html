@@ -4,112 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
     <title>旅途誌 | Travel Assistant</title>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@300;400&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <header class="app-header">
-        <div class="header-content">
-            <h1>旅 途 誌</h1>
-            <span class="divider"></span>
-            <p>TRAVEL ASSISTANT</p>
-        </div>
+    <header class="dest-header">
+        <div class="dest-label">DESTINATION</div>
+        <div class="dest-name">京都 <span class="dest-icon">tit</span></div>
     </header>
 
     <main id="scroll-area">
         <section id="itinerary" class="tab-content active">
-            <div class="date-section">
-                <div id="date-navigator" class="date-scroll"></div>
-                <button class="add-day-pill" onclick="addNewDay()">+ 新增天數</button>
-            </div>
-            <div class="content-header">
-                <div class="title-group">
-                    <h2 id="current-view-date">開始規劃</h2>
-                    <button id="delete-day-btn" class="icon-btn-delete" onclick="deleteCurrentDay()" style="display:none;">
-                        <span class="material-icons-round">delete_outline</span>
-                    </button>
+            <div class="date-scroll-area">
+                <div id="date-navigator" class="date-row"></div>
+                <div class="date-controls">
+                    <button class="btn-circle-control minus" onclick="deleteCurrentDay()">−</button>
+                    <button class="btn-circle-control plus" onclick="addNewDay()">+</button>
                 </div>
-                <button class="fab-add" onclick="openForm('add')">
-                    <span class="material-icons-round">add</span>
-                </button>
             </div>
-            <div id="daily-list" class="timeline-container"></div>
+
+            <div id="daily-list" class="itinerary-stack"></div>
         </section>
 
         <section id="splitBill" class="tab-content">
-            <div class="card-glass">
-                <div class="card-title-ui"><span class="material-icons-round">payments</span><h2>費用分攤</h2></div>
-                <div class="form-group">
-                    <div class="field"><label>總金額</label><input type="number" id="billAmount" placeholder="0"></div>
-                    <div class="field"><label>人數</label><input type="number" id="billPeople" placeholder="1"></div>
+            <div class="glass-card">
+                <h3>BUDGET</h3>
+                <div class="input-minimal">
+                    <label>AMOUNT</label>
+                    <input type="number" id="billAmount" placeholder="0">
                 </div>
-                <button class="btn-submit" onclick="calculateBill()">結算金額</button>
-                <div id="billResultText" class="result-text">平均每人：$ 0</div>
+                <div class="input-minimal">
+                    <label>PEOPLE</label>
+                    <input type="number" id="billPeople" placeholder="1">
+                </div>
+                <button class="btn-premium" onclick="calculateBill()">CALCULATE</button>
+                <div id="billResultText" class="result-display">Result: $0</div>
             </div>
         </section>
 
         <section id="notes" class="tab-content">
-            <div class="card-glass">
-                <div class="card-title-ui"><span class="material-icons-round">history_edu</span><h2>旅行隨筆</h2></div>
-                <textarea id="noteInput" class="note-area" placeholder="在此刻寫下感受..."></textarea>
-                <button class="btn-submit" onclick="saveNote()">儲存隨筆</button>
+            <div class="glass-card">
+                <h3>MEMO</h3>
+                <textarea id="noteInput" class="minimal-textarea" placeholder="Write something..."></textarea>
+                <button class="btn-premium" onclick="saveNote()">SAVE</button>
             </div>
         </section>
 
         <section id="shopping" class="tab-content">
-            <div class="card-glass">
-                <div class="card-title-ui"><span class="material-icons-round">shopping_bag</span><h2>購物清單</h2></div>
-                <div class="inline-input">
-                    <input type="text" id="shoppingInput" placeholder="想買什麼？">
-                    <button onclick="addItem('shopping')">新增</button>
+            <div class="glass-card">
+                <h3>SHOPPING</h3>
+                <div class="shopping-add-box">
+                    <input type="text" id="shoppingInput" placeholder="Add item...">
+                    <button onclick="addItem('shopping')">+</button>
                 </div>
-                <ul id="shoppingList" class="p-list"></ul>
+                <ul id="shoppingList" class="clean-list"></ul>
             </div>
         </section>
     </main>
 
+    <button id="floating-add-btn" class="fab-gold" onclick="openForm('add')">
+        <span class="material-icons-outlined">add</span>
+    </button>
+
     <div id="modal-overlay" class="modal-blur" style="display:none;">
-        <div class="bottom-drawer" id="bottom-drawer">
-            <div class="drawer-handle" id="swipe-bar"></div>
-            <div class="drawer-header">
-                <h3 id="form-title">行程編輯</h3>
-                <button class="close-x" onclick="closeForm()">
-                    <span class="material-icons-round">close</span>
-                </button>
-            </div>
-            <div class="drawer-body">
+        <div class="bottom-sheet" id="bottom-drawer">
+            <div class="sheet-handle" id="swipe-bar"></div>
+            <div class="form-body">
                 <input type="hidden" id="edit-id">
-                <div class="input-row-flex">
-                    <div class="field date-f"><label>日期</label><input type="date" id="itemDate"></div>
-                    <div class="field time-f"><label>時間</label><input type="time" id="itemTime"></div>
+                <div class="form-row">
+                    <div class="field"><label>DATE</label><input type="date" id="itemDate"></div>
+                    <div class="field"><label>TIME</label><input type="time" id="itemTime"></div>
                 </div>
-                <div class="field"><label>行程名稱</label><input type="text" id="itemTitle" placeholder="要去哪裡呢？"></div>
-                <div class="field"><label>詳細備註</label><textarea id="itemNote" placeholder="詳細紀錄..."></textarea></div>
-                <div class="field"><label>相關連結</label><input type="text" id="itemLink" placeholder="Google Maps URL"></div>
-                <button class="btn-save-itinerary" onclick="handleSave()">儲存行程</button>
+                <div class="field"><label>TITLE</label><input type="text" id="itemTitle"></div>
+                <div class="field"><label>NOTE</label><textarea id="itemNote"></textarea></div>
+                <div class="field"><label>LINK / MAPS</label><input type="text" id="itemLink"></div>
+                
+                <div class="modal-actions">
+                    <button id="btn-delete-item" class="btn-delete-text" style="display:none;" onclick="handleDeleteItem()">DELETE ITEM</button>
+                    <button class="btn-save-itinerary" onclick="handleSave()">UPDATE SCHEDULE</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <nav class="app-navbar">
+    <nav class="bottom-nav">
         <div class="nav-item active" onclick="showTab('itinerary', this)">
-            <span class="material-icons-round">event_note</span>
-            <span class="nav-label">行程</span>
+            <span class="material-icons-outlined">map</span>
+            <div class="nav-label">SCHEDULE</div>
         </div>
         <div class="nav-item" onclick="showTab('splitBill', this)">
-            <span class="material-icons-round">payments</span>
-            <span class="nav-label">分帳</span>
+            <span class="material-icons-outlined">credit_card</span>
+            <div class="nav-label">BUDGET</div>
         </div>
         <div class="nav-item" onclick="showTab('notes', this)">
-            <span class="material-icons-round">history_edu</span>
-            <span class="nav-label">隨筆</span>
+            <span class="material-icons-outlined">description</span>
+            <div class="nav-label">MEMO</div>
         </div>
         <div class="nav-item" onclick="showTab('shopping', this)">
-            <span class="material-icons-round">shopping_bag</span>
-            <span class="nav-label">清單</span>
+            <span class="material-icons-outlined">shopping_bag</span>
+            <div class="nav-label">LIST</div>
         </div>
     </nav>
 

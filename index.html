@@ -5,107 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
     <title>旅途誌 | Travel Assistant</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@300;400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
     <header class="dest-header">
-        <div class="dest-label">DESTINATION</div>
-        <div class="dest-name">京都 <span class="dest-icon">tit</span></div>
+        <div class="dest-top-label">DESTINATION</div>
+        <div class="dest-main">
+            <span id="dest-title">京都</span>
+            <div class="dest-settings"><span class="material-icons-outlined">tune</span></div>
+        </div>
     </header>
 
     <main id="scroll-area">
         <section id="itinerary" class="tab-content active">
-            <div class="date-scroll-area">
-                <div id="date-navigator" class="date-row"></div>
-                <div class="date-controls">
-                    <button class="btn-circle-control minus" onclick="deleteCurrentDay()">−</button>
-                    <button class="btn-circle-control plus" onclick="addNewDay()">+</button>
+            <div class="date-track-container">
+                <div id="date-navigator" class="date-track"></div>
+                <div class="date-manage-btns">
+                    <button class="circle-ctrl" onclick="deleteCurrentDay()">−</button>
+                    <button class="circle-ctrl" onclick="addNewDay()">+</button>
                 </div>
             </div>
 
-            <div id="daily-list" class="itinerary-stack"></div>
+            <div id="daily-list" class="itinerary-list"></div>
         </section>
 
         <section id="splitBill" class="tab-content">
             <div class="glass-card">
-                <h3>BUDGET</h3>
-                <div class="input-minimal">
-                    <label>AMOUNT</label>
-                    <input type="number" id="billAmount" placeholder="0">
-                </div>
-                <div class="input-minimal">
-                    <label>PEOPLE</label>
-                    <input type="number" id="billPeople" placeholder="1">
-                </div>
+                <h3 class="card-label">BUDGET</h3>
+                <div class="input-minimal"><label>AMOUNT</label><input type="number" id="billAmount" placeholder="0"></div>
+                <div class="input-minimal"><label>PEOPLE</label><input type="number" id="billPeople" placeholder="1"></div>
                 <button class="btn-premium" onclick="calculateBill()">CALCULATE</button>
-                <div id="billResultText" class="result-display">Result: $0</div>
+                <div id="billResultText" class="result-text">$ 0</div>
             </div>
         </section>
 
         <section id="notes" class="tab-content">
             <div class="glass-card">
-                <h3>MEMO</h3>
+                <h3 class="card-label">MEMO</h3>
                 <textarea id="noteInput" class="minimal-textarea" placeholder="Write something..."></textarea>
-                <button class="btn-premium" onclick="saveNote()">SAVE</button>
-            </div>
-        </section>
-
-        <section id="shopping" class="tab-content">
-            <div class="glass-card">
-                <h3>SHOPPING</h3>
-                <div class="shopping-add-box">
-                    <input type="text" id="shoppingInput" placeholder="Add item...">
-                    <button onclick="addItem('shopping')">+</button>
-                </div>
-                <ul id="shoppingList" class="clean-list"></ul>
+                <button class="btn-premium" onclick="saveNote()">SAVE MEMO</button>
             </div>
         </section>
     </main>
 
-    <button id="floating-add-btn" class="fab-gold" onclick="openForm('add')">
+    <button id="floating-add-btn" class="fab-black" onclick="openForm('add')">
         <span class="material-icons-outlined">add</span>
     </button>
 
     <div id="modal-overlay" class="modal-blur" style="display:none;">
         <div class="bottom-sheet" id="bottom-drawer">
             <div class="sheet-handle" id="swipe-bar"></div>
-            <div class="form-body">
+            <div class="form-container">
                 <input type="hidden" id="edit-id">
-                <div class="form-row">
+                <div class="grid-row">
                     <div class="field"><label>DATE</label><input type="date" id="itemDate"></div>
                     <div class="field"><label>TIME</label><input type="time" id="itemTime"></div>
                 </div>
-                <div class="field"><label>TITLE</label><input type="text" id="itemTitle"></div>
-                <div class="field"><label>NOTE</label><textarea id="itemNote"></textarea></div>
-                <div class="field"><label>LINK / MAPS</label><input type="text" id="itemLink"></div>
+                <div class="field"><label>SCHEDULE TITLE</label><input type="text" id="itemTitle" placeholder="景點名稱"></div>
+                <div class="field"><label>LOCATION LINK</label><input type="text" id="itemLink" placeholder="Google Maps URL"></div>
+                <div class="field"><label>DESCRIPTION</label><textarea id="itemNote" placeholder="備註資訊..."></textarea></div>
                 
-                <div class="modal-actions">
-                    <button id="btn-delete-item" class="btn-delete-text" style="display:none;" onclick="handleDeleteItem()">DELETE ITEM</button>
-                    <button class="btn-save-itinerary" onclick="handleSave()">UPDATE SCHEDULE</button>
+                <div class="modal-btns">
+                    <button id="btn-delete-item" class="btn-delete-text" style="display:none;" onclick="handleDeleteItem()">DELETE THIS ITEM</button>
+                    <button class="btn-save-main" onclick="handleSave()">UPDATE SCHEDULE</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <nav class="bottom-nav">
+    <nav class="main-nav">
         <div class="nav-item active" onclick="showTab('itinerary', this)">
             <span class="material-icons-outlined">map</span>
-            <div class="nav-label">SCHEDULE</div>
+            <div class="nav-text">SCHEDULE</div>
         </div>
         <div class="nav-item" onclick="showTab('splitBill', this)">
-            <span class="material-icons-outlined">credit_card</span>
-            <div class="nav-label">BUDGET</div>
+            <span class="material-icons-outlined">payments</span>
+            <div class="nav-text">BUDGET</div>
         </div>
         <div class="nav-item" onclick="showTab('notes', this)">
-            <span class="material-icons-outlined">description</span>
-            <div class="nav-label">MEMO</div>
-        </div>
-        <div class="nav-item" onclick="showTab('shopping', this)">
-            <span class="material-icons-outlined">shopping_bag</span>
-            <div class="nav-label">LIST</div>
+            <span class="material-icons-outlined">sticky_note_2</span>
+            <div class="nav-text">MEMO</div>
         </div>
     </nav>
 

@@ -22,20 +22,19 @@
         <section id="itinerary" class="tab-content active">
             <div class="section-top">
                 <div id="date-navigator" class="date-scroll-wrapper"></div>
-                <button class="btn-add-day" onclick="addNewDay()">
+                <button class="btn-add-day-outline" onclick="addNewDay()">
                     <span class="material-icons-round">add</span>
                 </button>
             </div>
 
             <div class="itinerary-header">
-                <div class="date-display">
-                    <h2 id="current-view-date">尚未新增天數</h2>
-                    <button id="delete-day-btn" class="btn-delete-small" onclick="deleteCurrentDay()" style="display:none;">
-                        <span class="material-icons-round">delete_sweep</span>
-                        <span>移除本天</span>
+                <div class="current-info">
+                    <h2 id="current-view-date">尚未規劃</h2>
+                    <button id="delete-day-btn" class="btn-delete-action" onclick="deleteCurrentDay()" style="display:none;">
+                        <span class="material-icons-round">delete_outline</span>
                     </button>
                 </div>
-                <button class="btn-fab" onclick="openForm('add')">
+                <button class="btn-fab-add" onclick="openForm('add')">
                     <span class="material-icons-round">add</span>
                 </button>
             </div>
@@ -44,105 +43,75 @@
 
         <section id="splitBill" class="tab-content">
             <div class="card-ui">
-                <div class="card-header">
-                    <span class="material-icons-round">payments</span>
-                    <h2>費用分攤</h2>
+                <div class="card-header"><span class="material-icons-round">payments</span><h2>費用分攤</h2></div>
+                <div class="bill-inputs">
+                    <input type="number" id="billAmount" placeholder="總支出金額">
+                    <input type="number" id="billPeople" placeholder="分攤人數">
                 </div>
-                <div class="bill-form">
-                    <div class="input-field">
-                        <label>總支出金額</label>
-                        <input type="number" id="billAmount" placeholder="0">
-                    </div>
-                    <div class="input-field">
-                        <label>分攤人數</label>
-                        <input type="number" id="billPeople" placeholder="1">
-                    </div>
-                </div>
-                <button class="btn-primary-full" onclick="calculateBill()">結算費用</button>
-                <div id="billResultText" class="result-display">平均每人：$ 0</div>
+                <button class="btn-primary-dark" onclick="calculateBill()">開始結算</button>
+                <div id="billResultText" class="result-box">平均每人：$ 0</div>
             </div>
         </section>
 
         <section id="notes" class="tab-content">
             <div class="card-ui">
-                <div class="card-header">
-                    <span class="material-icons-round">history_edu</span>
-                    <h2>旅行隨筆</h2>
-                </div>
-                <textarea id="noteInput" class="premium-textarea" placeholder="在此刻寫下感受..."></textarea>
-                <button class="btn-primary-full" onclick="saveNote()">儲存內容</button>
+                <div class="card-header"><span class="material-icons-round">history_edu</span><h2>旅行隨筆</h2></div>
+                <textarea id="noteInput" class="premium-text" placeholder="寫下此刻的心情..."></textarea>
+                <button class="btn-primary-dark" onclick="saveNote()">儲存內容</button>
             </div>
         </section>
 
         <section id="shopping" class="tab-content">
             <div class="card-ui">
-                <div class="card-header">
-                    <span class="material-icons-round">shopping_bag</span>
-                    <h2>購物清單</h2>
-                </div>
-                <div class="shopping-input-group">
+                <div class="card-header"><span class="material-icons-round">shopping_bag</span><h2>購物清單</h2></div>
+                <div class="shopping-add">
                     <input type="text" id="shoppingInput" placeholder="想帶回家的禮物...">
                     <button onclick="addItem('shopping')">新增</button>
                 </div>
-                <ul id="shoppingList" class="item-list"></ul>
+                <ul id="shoppingList" class="p-list"></ul>
             </div>
         </section>
     </main>
 
     <div id="modal-overlay" class="modal-overlay" style="display:none;">
         <div class="bottom-sheet">
-            <div class="sheet-handle"></div>
+            <div class="sheet-indicator"></div>
             <div class="sheet-header">
-                <h3 id="form-title">行程編輯</h3>
+                <h3 id="form-title">編輯行程</h3>
                 <button class="btn-close-modal" onclick="closeForm()">
                     <span class="material-icons-round">close</span>
                 </button>
             </div>
-            <div class="form-content">
+            <div class="form-scroll">
                 <input type="hidden" id="edit-id">
-                <div class="form-grid">
-                    <div class="field">
-                        <label>日期</label>
-                        <input type="date" id="itemDate">
-                    </div>
-                    <div class="field">
-                        <label>時間</label>
-                        <input type="time" id="itemTime">
-                    </div>
+                <div class="grid-2">
+                    <div class="field"><label>日期</label><input type="date" id="itemDate"></div>
+                    <div class="field"><label>時間</label><input type="time" id="itemTime"></div>
                 </div>
-                <div class="field">
-                    <label>行程標題</label>
-                    <input type="text" id="itemTitle" placeholder="要去哪裡？">
-                </div>
-                <div class="field">
-                    <label>詳細備註</label>
-                    <textarea id="itemNote" placeholder="預約資訊、必買清單等..."></textarea>
-                </div>
-                <div class="field">
-                    <label>地點連結</label>
-                    <input type="text" id="itemLink" placeholder="Google Maps 連結">
-                </div>
-                <button class="btn-save-itinerary" onclick="handleSave()">儲存變更</button>
+                <div class="field"><label>行程標題</label><input type="text" id="itemTitle" placeholder="例如：築地市場"></div>
+                <div class="field"><label>詳細備註</label><textarea id="itemNote" placeholder="門票預約、地址備註等..."></textarea></div>
+                <div class="field"><label>相關連結</label><input type="text" id="itemLink" placeholder="Google Maps URL"></div>
+                <button class="btn-submit-form" onclick="handleSave()">儲存並更新</button>
             </div>
         </div>
     </div>
 
-    <nav class="dock-nav">
+    <nav class="premium-nav">
         <div class="nav-btn active" onclick="showTab('itinerary', this)">
             <span class="material-icons-round">event_note</span>
-            <span class="label">行程</span>
+            <span class="nav-text">行程</span>
         </div>
         <div class="nav-btn" onclick="showTab('splitBill', this)">
             <span class="material-icons-round">payments</span>
-            <span class="label">分帳</span>
+            <span class="nav-text">分帳</span>
         </div>
         <div class="nav-btn" onclick="showTab('notes', this)">
             <span class="material-icons-round">history_edu</span>
-            <span class="label">隨筆</span>
+            <span class="nav-text">隨筆</span>
         </div>
         <div class="nav-btn" onclick="showTab('shopping', this)">
             <span class="material-icons-round">shopping_bag</span>
-            <span class="label">清單</span>
+            <span class="nav-text">清單</span>
         </div>
     </nav>
 

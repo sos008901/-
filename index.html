@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>旅途誌 | Travel Assistant</title>
+    <title>旅途誌</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +18,7 @@
         <section id="itinerary" class="tab-content active">
             <h2>行程規劃</h2>
             <div class="input-group">
-                <input type="text" id="itineraryInput" placeholder="輸入目的地或行程...">
+                <input type="text" id="itineraryInput" placeholder="下一站去哪裡？">
                 <button onclick="addItem('itinerary')">加入</button>
             </div>
             <ul id="itineraryList"></ul>
@@ -26,35 +27,47 @@
         <section id="splitBill" class="tab-content">
             <h2>費用分攤</h2>
             <div class="bill-card">
-                <input type="number" id="billAmount" placeholder="輸入支出總金額">
-                <input type="number" id="billPeople" placeholder="輸入分攤人數">
-                <button onclick="calculateBill()">計算結果</button>
-                <p id="billResultText">平均每人：$0</p>
+                <input type="number" id="billAmount" placeholder="支出金額">
+                <input type="number" id="billPeople" placeholder="分攤人數">
+                <button onclick="calculateBill()">計算</button>
+                <p id="billResultText">每人約：$0</p>
             </div>
         </section>
 
         <section id="notes" class="tab-content">
             <h2>旅行隨筆</h2>
-            <textarea id="noteInput" placeholder="記下此刻的心情或重要事項..."></textarea>
-            <button onclick="saveNote()">儲存記事</button>
+            <textarea id="noteInput" placeholder="寫下當下的感動..."></textarea>
+            <button onclick="saveNote()">儲存</button>
             <p id="noteStatus"></p>
         </section>
 
         <section id="shopping" class="tab-content">
             <h2>購物清單</h2>
             <div class="input-group">
-                <input type="text" id="shoppingInput" placeholder="想帶回家的紀念品？">
+                <input type="text" id="shoppingInput" placeholder="想買的紀念品">
                 <button onclick="addItem('shopping')">新增</button>
             </div>
             <ul id="shoppingList"></ul>
         </section>
     </main>
 
-    <nav class="bottom-nav">
-        <div class="nav-item" onclick="showTab('itinerary')">行程</div>
-        <div class="nav-item" onclick="showTab('splitBill')">分帳</div>
-        <div class="nav-item" onclick="showTab('notes')">隨筆</div>
-        <div class="nav-item" onclick="showTab('shopping')">清單</div>
+    <nav class="floating-nav">
+        <div class="nav-item active" onclick="showTab('itinerary', this)">
+            <span class="material-icons-round">event_note</span>
+            <span class="nav-label">行程</span>
+        </div>
+        <div class="nav-item" onclick="showTab('splitBill', this)">
+            <span class="material-icons-round">payments</span>
+            <span class="nav-label">分帳</span>
+        </div>
+        <div class="nav-item" onclick="showTab('notes', this)">
+            <span class="material-icons-round">edit_note</span>
+            <span class="nav-label">隨筆</span>
+        </div>
+        <div class="nav-item" onclick="showTab('shopping')">
+            <span class="material-icons-round">shopping_bag</span>
+            <span class="nav-label">清單</span>
+        </div>
     </nav>
 
     <script src="script.js"></script>

@@ -6,6 +6,7 @@
     <title>旅途誌 | Travel Assistant</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -46,11 +47,11 @@
             <div class="card-ui">
                 <div class="card-header"><span class="material-icons-round">payments</span><h2>費用分攤</h2></div>
                 <div class="bill-fields">
-                    <div class="field"><label>總金額</label><input type="number" id="billAmount" placeholder="0"></div>
-                    <div class="field"><label>人數</label><input type="number" id="billPeople" placeholder="1"></div>
+                    <div class="field"><label>總支出金額</label><input type="number" id="billAmount" placeholder="0"></div>
+                    <div class="field"><label>分攤人數</label><input type="number" id="billPeople" placeholder="1"></div>
                 </div>
-                <button class="btn-dark" onclick="calculateBill()">計算</button>
-                <div id="billResultText" class="result-display">平均：$ 0</div>
+                <button class="btn-dark-full" onclick="calculateBill()">結算金額</button>
+                <div id="billResultText" class="result-display">平均每人：$ 0</div>
             </div>
         </section>
 
@@ -58,14 +59,14 @@
             <div class="card-ui">
                 <div class="card-header"><span class="material-icons-round">history_edu</span><h2>旅行隨筆</h2></div>
                 <textarea id="noteInput" class="premium-textarea" placeholder="在此刻寫下感受..."></textarea>
-                <button class="btn-dark" onclick="saveNote()">儲存內容</button>
+                <button class="btn-dark-full" onclick="saveNote()">儲存內容</button>
             </div>
         </section>
 
         <section id="shopping" class="tab-content">
             <div class="card-ui">
                 <div class="card-header"><span class="material-icons-round">shopping_bag</span><h2>購物清單</h2></div>
-                <div class="shopping-input">
+                <div class="shopping-input-box">
                     <input type="text" id="shoppingInput" placeholder="想買什麼？">
                     <button onclick="addItem('shopping')">新增</button>
                 </div>
@@ -78,14 +79,14 @@
         <div class="bottom-sheet">
             <div class="sheet-bar"></div>
             <div class="sheet-header">
-                <h3 id="form-title">編輯行程</h3>
+                <h3 id="form-title">行程資訊</h3>
                 <button class="btn-close-sheet" onclick="closeForm()">
                     <span class="material-icons-round">close</span>
                 </button>
             </div>
             <div class="form-body">
                 <input type="hidden" id="edit-id">
-                <div class="field-group-row">
+                <div class="form-row-group">
                     <div class="field">
                         <label>日期</label>
                         <input type="date" id="itemDate">
@@ -96,38 +97,38 @@
                     </div>
                 </div>
                 <div class="field">
-                    <label>行程名稱</label>
-                    <input type="text" id="itemTitle" placeholder="例如：金閣寺">
+                    <label>景點或行程名稱</label>
+                    <input type="text" id="itemTitle" placeholder="例如：東京迪士尼">
                 </div>
                 <div class="field">
                     <label>詳細備註</label>
-                    <textarea id="itemNote" placeholder="門票資訊、交通方式等..."></textarea>
+                    <textarea id="itemNote" placeholder="門票號碼、必吃餐廳等..."></textarea>
                 </div>
                 <div class="field">
-                    <label>相關連結</label>
-                    <input type="text" id="itemLink" placeholder="Google Maps URL">
+                    <label>參考連結</label>
+                    <input type="text" id="itemLink" placeholder="Google Maps 網址">
                 </div>
-                <button class="btn-save-full" onclick="handleSave()">儲存行程</button>
+                <button class="btn-save-action" onclick="handleSave()">儲存行程</button>
             </div>
         </div>
     </div>
 
     <nav class="dock-nav">
-        <div class="nav-btn active" onclick="showTab('itinerary', this)">
+        <div class="nav-item active" onclick="showTab('itinerary', this)">
             <span class="material-icons-round">event_note</span>
-            <span>行程</span>
+            <span class="nav-label">行程</span>
         </div>
-        <div class="nav-btn" onclick="showTab('splitBill', this)">
+        <div class="nav-item" onclick="showTab('splitBill', this)">
             <span class="material-icons-round">payments</span>
-            <span>分帳</span>
+            <span class="nav-label">分帳</span>
         </div>
-        <div class="nav-btn" onclick="showTab('notes', this)">
+        <div class="nav-item" onclick="showTab('notes', this)">
             <span class="material-icons-round">history_edu</span>
-            <span>隨筆</span>
+            <span class="nav-label">隨筆</span>
         </div>
-        <div class="nav-btn" onclick="showTab('shopping', this)">
+        <div class="nav-item" onclick="showTab('shopping', this)">
             <span class="material-icons-round">shopping_bag</span>
-            <span>清單</span>
+            <span class="nav-label">清單</span>
         </div>
     </nav>
 

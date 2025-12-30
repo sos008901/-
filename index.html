@@ -16,11 +16,16 @@
 
     <main id="scroll-area">
         <section id="itinerary" class="tab-content active">
-            <div id="date-navigator" class="date-bar">
-                </div>
+            <div class="date-container">
+                <div id="date-navigator" class="date-bar"></div>
+                <button class="add-date-btn" onclick="addNewDay()">+ 新增天數</button>
+            </div>
 
             <div class="itinerary-header">
-                <h2 id="current-view-date">當日行程</h2>
+                <div>
+                    <h2 id="current-view-date">請先新增天數</h2>
+                    <span id="delete-day-link" class="delete-text" onclick="deleteCurrentDay()" style="display:none;">刪除此天所有行程</span>
+                </div>
                 <button class="add-btn-circle" onclick="toggleAddForm()">+</button>
             </div>
 
@@ -29,8 +34,8 @@
                     <input type="date" id="itemDate">
                     <input type="time" id="itemTime">
                 </div>
-                <input type="text" id="itemTitle" placeholder="行程名稱 (例如：東京鐵塔)">
-                <textarea id="itemNote" placeholder="備註 (例如：門票已預約、建議停留2小時)"></textarea>
+                <input type="text" id="itemTitle" placeholder="行程名稱">
+                <textarea id="itemNote" placeholder="備註、門票資訊等"></textarea>
                 <input type="text" id="itemLink" placeholder="地址或 Google Maps 連結">
                 <div class="form-btns">
                     <button onclick="toggleAddForm()" style="background:#EEE; color:#666;">取消</button>
@@ -38,8 +43,7 @@
                 </div>
             </div>
 
-            <div id="daily-list" class="itinerary-list">
-                </div>
+            <div id="daily-list" class="itinerary-list"></div>
         </section>
 
         <section id="splitBill" class="tab-content">
@@ -82,7 +86,7 @@
             <span class="material-icons-round">edit_note</span>
             <span class="nav-label">隨筆</span>
         </div>
-        <div class="nav-item" onclick="showTab('shopping')">
+        <div class="nav-item" onclick="showTab('shopping', this)">
             <span class="material-icons-round">shopping_bag</span>
             <span class="nav-label">清單</span>
         </div>

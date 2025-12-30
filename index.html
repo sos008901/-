@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>旅途誌 | Travel Assistant</title>
-    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
@@ -17,20 +16,38 @@
 
     <main id="scroll-area">
         <section id="itinerary" class="tab-content active">
-            <h2>行程規劃</h2>
-            <div class="input-group">
-                <input type="text" id="itineraryInput" placeholder="下一個目的地？">
-                <button onclick="addItem('itinerary')">加入</button>
+            <div id="date-navigator" class="date-bar">
+                </div>
+
+            <div class="itinerary-header">
+                <h2 id="current-view-date">當日行程</h2>
+                <button class="add-btn-circle" onclick="toggleAddForm()">+</button>
             </div>
-            <ul id="itineraryList"></ul>
+
+            <div id="add-form" class="detail-form" style="display: none;">
+                <div class="form-row">
+                    <input type="date" id="itemDate">
+                    <input type="time" id="itemTime">
+                </div>
+                <input type="text" id="itemTitle" placeholder="行程名稱 (例如：東京鐵塔)">
+                <textarea id="itemNote" placeholder="備註 (例如：門票已預約、建議停留2小時)"></textarea>
+                <input type="text" id="itemLink" placeholder="地址或 Google Maps 連結">
+                <div class="form-btns">
+                    <button onclick="toggleAddForm()" style="background:#EEE; color:#666;">取消</button>
+                    <button onclick="saveItinerary()">確認新增</button>
+                </div>
+            </div>
+
+            <div id="daily-list" class="itinerary-list">
+                </div>
         </section>
 
         <section id="splitBill" class="tab-content">
             <h2>費用分攤</h2>
             <div class="bill-card">
-                <input type="number" id="billAmount" placeholder="總金額" style="text-align: center;">
-                <input type="number" id="billPeople" placeholder="分攤人數" style="text-align: center;">
-                <button onclick="calculateBill()" style="width: 100%; margin-top: 15px;">開始計算</button>
+                <input type="number" id="billAmount" placeholder="總金額">
+                <input type="number" id="billPeople" placeholder="分攤人數">
+                <button onclick="calculateBill()" style="width: 100%; margin-top: 15px;">計算</button>
                 <p id="billResultText">平均每人：$ 0</p>
             </div>
         </section>
@@ -45,7 +62,7 @@
         <section id="shopping" class="tab-content">
             <h2>購物清單</h2>
             <div class="input-group">
-                <input type="text" id="shoppingInput" placeholder="想買什麼紀念品？">
+                <input type="text" id="shoppingInput" placeholder="想買什麼？">
                 <button onclick="addItem('shopping')">新增</button>
             </div>
             <ul id="shoppingList"></ul>
@@ -65,7 +82,7 @@
             <span class="material-icons-round">edit_note</span>
             <span class="nav-label">隨筆</span>
         </div>
-        <div class="nav-item" onclick="showTab('shopping', this)">
+        <div class="nav-item" onclick="showTab('shopping')">
             <span class="material-icons-round">shopping_bag</span>
             <span class="nav-label">清單</span>
         </div>

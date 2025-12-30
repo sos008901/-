@@ -1,4 +1,4 @@
-// --- 核心資料 ---
+// --- 資料持久化 ---
 let itineraryData = JSON.parse(localStorage.getItem('itineraryData')) || [];
 let activeDates = JSON.parse(localStorage.getItem('activeDates')) || [];
 let currentSelectedDate = localStorage.getItem('lastSelectedDate') || "";
@@ -12,13 +12,11 @@ window.onload = () => {
     document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
 };
 
-// --- 分頁隔離邏輯 (徹底解決分頁不開問題) ---
+// --- 分頁隔離功能 ---
 function showTab(tabId, el) {
     const allTabs = document.querySelectorAll('.tab-content');
     allTabs.forEach(tab => tab.classList.remove('active'));
-    
-    const target = document.getElementById(tabId);
-    if (target) target.classList.add('active');
+    document.getElementById(tabId).classList.add('active');
     
     const allBtns = document.querySelectorAll('.nav-btn');
     allBtns.forEach(btn => btn.classList.remove('active'));
@@ -27,10 +25,9 @@ function showTab(tabId, el) {
     document.getElementById('scroll-area').scrollTop = 0;
 }
 
-// --- 表單邏輯：新增與編輯 ---
+// --- 表單控制 ---
 function openForm(mode, id = null) {
     if (!currentSelectedDate && mode === 'add') return alert("請先新增旅遊天數");
-    
     document.getElementById('modal-overlay').style.display = 'flex';
     const title = document.getElementById('form-title');
     const editIdInput = document.getElementById('edit-id');
@@ -62,7 +59,7 @@ function closeForm() {
 function handleSave() {
     const title = document.getElementById('itemTitle').value;
     const editId = document.getElementById('edit-id').value;
-    if (!title) return alert("請輸入地點名稱");
+    if (!title) return alert("請填寫地點名稱");
 
     const data = {
         id: editId ? parseInt(editId) : Date.now(),
@@ -84,7 +81,7 @@ function handleSave() {
     closeForm();
 }
 
-// --- 資料與天數渲染 ---
+// --- 渲染與拖拽邏輯 ---
 function saveAndRefresh() {
     localStorage.setItem('activeDates', JSON.stringify(activeDates));
     localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
@@ -93,6 +90,83 @@ function saveAndRefresh() {
     renderDailyList();
 }
 
+function renderDailyList() {
+    const list = document.getElementById('daily-list');
+    const dateTitle = document.getElementById('current-view-date');
+    const deleteBtn = document.getElementById('delete-day-btn');
+    list.innerHTML = '';
+
+    if (!currentSelectedDate) {
+        dateTitle.innerText = "尚未開啟";
+        deleteBtn.style.display = "none";
+        return;
+    }
+
+    dateTitle.innerText = currentSelectedDate;
+    deleteBtn.style.display = "flex";
+
+    const items = itineraryData.filter(item => item.date === currentSelectedDate);
+
+    items.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'itinerary-card';
+        card.draggable = true; // 開啟拖拽
+        card.dataset.id = item.id;
+        
+        // 綁定拖拽事件
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragover', handleDragOver);
+        card.addEventListener('drop', handleDrop);
+        card.addEventListener('dragend', handleDragEnd);
+
+        card.innerHTML = `
+            <div class="card-time">${item.time || '--:--'}</div>
+            <div class="card-content">
+                <h3>${item.title}</h3>
+                ${item.note ? `<p>${item.note}</p>` : ''}
+                <div class="card-btns">
+                    <span class="btn-mini" onclick="openForm('edit', ${item.id})">編輯</span>
+                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-mini">地點</a>` : ''}
+                    <span class="btn-mini" style="color:#C66" onclick="deleteItem(${item.id})">移除</span>
+                </div>
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+// --- 拖拽核心功能 ---
+let draggedId = null;
+
+function handleDragStart(e) {
+    draggedId = this.dataset.id;
+    this.classList.add('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const targetId = this.dataset.id;
+    if (draggedId === targetId) return;
+
+    const draggedIndex = itineraryData.findIndex(i => i.id == draggedId);
+    const targetIndex = itineraryData.findIndex(i => i.id == targetId);
+
+    // 在陣列中交換位置
+    const [removed] = itineraryData.splice(draggedIndex, 1);
+    itineraryData.splice(targetIndex, 0, removed);
+
+    saveAndRefresh();
+}
+
+function handleDragEnd() {
+    this.classList.remove('dragging');
+}
+
+// --- 其他功能 ---
 function renderDateTabs() {
     const nav = document.getElementById('date-navigator');
     nav.innerHTML = '';
@@ -106,45 +180,6 @@ function renderDateTabs() {
     });
 }
 
-function renderDailyList() {
-    const list = document.getElementById('daily-list');
-    const dateTitle = document.getElementById('current-view-date');
-    const deleteBtn = document.getElementById('delete-day-btn');
-    list.innerHTML = '';
-
-    if (!currentSelectedDate) {
-        dateTitle.innerText = "尚未開啟規劃";
-        deleteBtn.style.display = "none";
-        return;
-    }
-
-    dateTitle.innerText = currentSelectedDate;
-    deleteBtn.style.display = "flex";
-
-    const items = itineraryData
-        .filter(item => item.date === currentSelectedDate)
-        .sort((a, b) => (a.time > b.time ? 1 : -1));
-
-    items.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'itinerary-card';
-        card.innerHTML = `
-            <div class="card-time">${item.time || '--:--'}</div>
-            <div class="card-content">
-                <h3>${item.title}</h3>
-                ${item.note ? `<p>${item.note}</p>` : ''}
-                <div class="card-actions">
-                    <span class="btn-text" onclick="openForm('edit', ${item.id})">編輯</span>
-                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-text">地點</a>` : ''}
-                    <span class="btn-text" style="color:#C66" onclick="deleteItem(${item.id})">移除</span>
-                </div>
-            </div>
-        `;
-        list.appendChild(card);
-    });
-}
-
-// --- 輔助管理 ---
 function addNewDay() {
     let next;
     if (activeDates.length === 0) next = new Date().toISOString().split('T')[0];
@@ -159,7 +194,7 @@ function addNewDay() {
 }
 
 function deleteCurrentDay() {
-    if (!confirm("確定要刪除這天的行程嗎？")) return;
+    if (!confirm("確定要移除整天的規劃嗎？")) return;
     itineraryData = itineraryData.filter(i => i.date !== currentSelectedDate);
     activeDates = activeDates.filter(d => d !== currentSelectedDate);
     currentSelectedDate = activeDates.length > 0 ? activeDates[0] : "";
@@ -167,7 +202,7 @@ function deleteCurrentDay() {
 }
 
 function deleteItem(id) {
-    if (!confirm("移除此行程？")) return;
+    if (!confirm("移除行程？")) return;
     itineraryData = itineraryData.filter(i => i.id !== id);
     saveAndRefresh();
 }
@@ -180,7 +215,7 @@ function calculateBill() {
 
 function saveNote() {
     localStorage.setItem('travelNote', document.getElementById('noteInput').value);
-    alert("隨筆已存入手機");
+    alert("儲存成功");
 }
 
 function addItem(type) {

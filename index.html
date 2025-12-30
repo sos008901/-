@@ -27,46 +27,54 @@
                 </button>
             </div>
 
-            <div class="itinerary-status-bar">
-                <div class="date-info">
-                    <h2 id="current-view-date">開始規劃您的旅程</h2>
-                    <button id="delete-day-btn" class="btn-text-delete" onclick="deleteCurrentDay()" style="display:none;">
-                        <span class="material-icons-round">delete_outline</span> 刪除此天
+            <div class="itinerary-header">
+                <div class="date-display">
+                    <h2 id="current-view-date">開始規劃旅程</h2>
+                    <button id="delete-day-btn" class="btn-icon-text" onclick="deleteCurrentDay()" style="display:none;">
+                        <span class="material-icons-round">delete</span> 移除本天
                     </button>
                 </div>
-                <button class="btn-primary-fab" onclick="toggleAddForm()">
+                <button class="btn-fab" onclick="openAddForm()">
                     <span class="material-icons-round">add</span>
                 </button>
             </div>
 
-            <div id="add-form" class="modal-form" style="display: none;">
-                <div class="form-card">
-                    <h3>新增行程項目</h3>
-                    <div class="form-grid">
-                        <div class="input-field">
-                            <label>日期</label>
-                            <input type="date" id="itemDate">
+            <div id="modal-overlay" class="modal-overlay" style="display:none;">
+                <div class="form-sheet">
+                    <div class="sheet-header">
+                        <h3 id="form-title">新增行程</h3>
+                        <button class="btn-close" onclick="closeForm()">
+                            <span class="material-icons-round">close</span>
+                        </button>
+                    </div>
+                    <div class="form-body">
+                        <input type="hidden" id="edit-id">
+                        
+                        <div class="input-row">
+                            <div class="field">
+                                <label>日期</label>
+                                <input type="date" id="itemDate">
+                            </div>
+                            <div class="field">
+                                <label>時間</label>
+                                <input type="time" id="itemTime">
+                            </div>
                         </div>
-                        <div class="input-field">
-                            <label>時間</label>
-                            <input type="time" id="itemTime">
+                        <div class="field">
+                            <label>景點名稱</label>
+                            <input type="text" id="itemTitle" placeholder="例如：金閣寺">
+                        </div>
+                        <div class="field">
+                            <label>隨手備註</label>
+                            <textarea id="itemNote" placeholder="門票預約、必吃推薦..."></textarea>
+                        </div>
+                        <div class="field">
+                            <label>地點連結</label>
+                            <input type="text" id="itemLink" placeholder="Google Maps 連結">
                         </div>
                     </div>
-                    <div class="input-field">
-                        <label>行程名稱</label>
-                        <input type="text" id="itemTitle" placeholder="例如：築地市場">
-                    </div>
-                    <div class="input-field">
-                        <label>備註內容</label>
-                        <textarea id="itemNote" placeholder="相關細節或注意事項..."></textarea>
-                    </div>
-                    <div class="input-field">
-                        <label>地點連結 (Google Maps)</label>
-                        <input type="text" id="itemLink" placeholder="https://...">
-                    </div>
-                    <div class="form-actions">
-                        <button class="btn-cancel" onclick="toggleAddForm()">取消</button>
-                        <button class="btn-confirm" onclick="saveItinerary()">確認新增</button>
+                    <div class="sheet-footer">
+                        <button class="btn-submit" onclick="handleSave()">儲存行程</button>
                     </div>
                 </div>
             </div>
@@ -75,38 +83,29 @@
         </section>
 
         <section id="splitBill" class="tab-content">
-            <div class="premium-card-ui">
+            <div class="card-ui">
                 <h2>費用分攤</h2>
-                <div class="bill-input-group">
-                    <div class="input-box">
-                        <small>總金額</small>
-                        <input type="number" id="billAmount" placeholder="0">
-                    </div>
-                    <div class="input-box">
-                        <small>分攤人數</small>
-                        <input type="number" id="billPeople" placeholder="1">
-                    </div>
+                <div class="bill-grid">
+                    <input type="number" id="billAmount" placeholder="總金額">
+                    <input type="number" id="billPeople" placeholder="分攤人數">
                 </div>
-                <button class="btn-action-full" onclick="calculateBill()">結算費用</button>
-                <div class="bill-result">
-                    <p id="billResultText">平均每人：$ 0</p>
-                </div>
+                <button class="btn-full" onclick="calculateBill()">計算</button>
+                <div class="bill-result" id="billResultText">平均：$ 0</div>
             </div>
         </section>
 
         <section id="notes" class="tab-content">
-            <div class="premium-card-ui">
+            <div class="card-ui">
                 <h2>旅行隨筆</h2>
-                <textarea id="noteInput" class="premium-textarea" placeholder="在此刻寫下感受..."></textarea>
-                <button class="btn-action-full" onclick="saveNote()">儲存內容</button>
-                <p id="noteStatus"></p>
+                <textarea id="noteInput" placeholder="在此刻寫下感受..."></textarea>
+                <button class="btn-full" onclick="saveNote()">儲存內容</button>
             </div>
         </section>
 
         <section id="shopping" class="tab-content">
-            <div class="premium-card-ui">
+            <div class="card-ui">
                 <h2>購物清單</h2>
-                <div class="inline-input">
+                <div class="shopping-add">
                     <input type="text" id="shoppingInput" placeholder="想買什麼呢？">
                     <button onclick="addItem('shopping')">新增</button>
                 </div>
@@ -117,11 +116,11 @@
 
     <nav class="premium-nav">
         <div class="nav-item active" onclick="showTab('itinerary', this)">
-            <span class="material-icons-round">auto_awesome_motion</span>
+            <span class="material-icons-round">event_note</span>
             <span>行程</span>
         </div>
         <div class="nav-item" onclick="showTab('splitBill', this)">
-            <span class="material-icons-round">account_balance_wallet</span>
+            <span class="material-icons-round">payments</span>
             <span>分帳</span>
         </div>
         <div class="nav-item" onclick="showTab('notes', this)">
@@ -129,7 +128,7 @@
             <span>隨筆</span>
         </div>
         <div class="nav-item" onclick="showTab('shopping', this)">
-            <span class="material-icons-round">shopping_cart</span>
+            <span class="material-icons-round">shopping_bag</span>
             <span>清單</span>
         </div>
     </nav>

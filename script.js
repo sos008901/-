@@ -1,29 +1,16 @@
-// --- 禁止縮放的核心指令 ---
-document.addEventListener('touchstart', function(event) {
-    if (event.touches.length > 1) {
-        event.preventDefault(); // 禁止雙指縮放
-    }
-}, { passive: false });
-
+// --- 核心資料與禁止縮放 ---
+document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 let lastTouchEnd = 0;
-document.addEventListener('touchend', function(event) {
+document.addEventListener('touchend', (e) => {
     let now = (new Date()).getTime();
-    if (now - lastTouchEnd <= 300) {
-        event.preventDefault(); // 禁止雙擊放大
-    }
+    if (now - lastTouchEnd <= 300) e.preventDefault();
     lastTouchEnd = now;
 }, false);
+document.addEventListener('gesturestart', (e) => e.preventDefault());
 
-document.addEventListener('gesturestart', function(event) {
-    event.preventDefault(); // 攔截 Safari 的縮放手勢
-});
-
-// --- 資料與功能邏輯 ---
 let itineraryData = JSON.parse(localStorage.getItem('itineraryData')) || [];
 let activeDates = JSON.parse(localStorage.getItem('activeDates')) || [];
 let currentSelectedDate = localStorage.getItem('lastSelectedDate') || "";
-
-const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 
 window.onload = () => {
     if (activeDates.length > 0 && !currentSelectedDate) currentSelectedDate = activeDates[0];
@@ -31,94 +18,114 @@ window.onload = () => {
     renderDailyList();
     initDragDrop();
     initSwipeToClose();
-    document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
 };
 
+// --- 行程渲染 (匹配 IMG_2142 結構) ---
+function renderDailyList() {
+    const list = document.getElementById('daily-list');
+    list.innerHTML = '';
+    if (!currentSelectedDate) return;
+
+    const items = itineraryData.filter(item => item.date === currentSelectedDate);
+    
+    items.forEach((item) => {
+        const card = document.createElement('div');
+        card.className = 'itinerary-card';
+        card.dataset.id = item.id;
+        card.onclick = () => openForm('edit', item.id); // 點擊卡片任何地方開啟編輯
+        
+        card.innerHTML = `
+            <div class="drag-handle"><span class="material-icons-outlined">drag_indicator</span></div>
+            <div class="card-time">${item.time || '--:--'}</div>
+            <div class="card-content">
+                <h3>${item.title}</h3>
+                ${item.link ? `
+                    <div class="card-info-item">
+                        <span class="material-icons-outlined">place</span>
+                        <a href="${item.link}" target="_blank" onclick="event.stopPropagation()">${item.link}</a>
+                    </div>
+                ` : ''}
+                ${item.note ? `
+                    <div class="card-info-item">
+                        <span class="material-icons-outlined">sticky_note_2</span>
+                        <p>${item.note}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        list.appendChild(card);
+    });
+}
+
+// --- 拖拽功能 ---
 function initDragDrop() {
     const el = document.getElementById('daily-list');
     Sortable.create(el, {
-        handle: '.drag-handle',
-        animation: 200,
-        ghostClass: 'sortable-ghost',
+        handle: '.drag-handle', animation: 250, ghostClass: 'sortable-ghost',
         onEnd: function () {
             const newOrderIds = Array.from(el.querySelectorAll('.itinerary-card')).map(card => parseInt(card.dataset.id));
-            const otherDatesData = itineraryData.filter(i => i.date !== currentSelectedDate);
-            const thisDateData = newOrderIds.map(id => itineraryData.find(i => i.id === id)).filter(Boolean);
-            itineraryData = [...otherDatesData, ...thisDateData];
+            const otherDates = itineraryData.filter(i => i.date !== currentSelectedDate);
+            const thisDate = newOrderIds.map(id => itineraryData.find(i => i.id === id)).filter(Boolean);
+            itineraryData = [...otherDates, ...thisDate];
             localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
         }
     });
 }
 
-function initSwipeToClose() {
-    const swipeBar = document.getElementById('swipe-bar');
-    const drawer = document.getElementById('bottom-drawer');
-    let startY = 0;
-    swipeBar.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; });
-    swipeBar.addEventListener('touchmove', (e) => {
-        let deltaY = e.touches[0].clientY - startY;
-        if (deltaY > 0) drawer.style.transform = `translateY(${deltaY}px)`;
-    });
-    swipeBar.addEventListener('touchend', (e) => {
-        let deltaY = e.changedTouches[0].clientY - startY;
-        if (deltaY > 80) closeForm();
-        drawer.style.transform = `translateY(0)`;
+// --- 日期導覽渲染 ---
+function renderDateTabs() {
+    const nav = document.getElementById('date-navigator');
+    nav.innerHTML = '';
+    activeDates.forEach((dateStr, index) => {
+        let dateObj = new Date(dateStr);
+        const div = document.createElement('div');
+        div.className = `date-item ${dateStr === currentSelectedDate ? 'active' : ''}`;
+        div.onclick = () => { currentSelectedDate = dateStr; saveAndRefresh(); };
+        div.innerHTML = `<span>DAY ${index + 1}</span><strong>${(dateObj.getMonth()+1)}/${dateObj.getDate()}</strong>`;
+        nav.appendChild(div);
     });
 }
 
-function renderDailyList() {
-    const list = document.getElementById('daily-list');
-    const dateTitle = document.getElementById('current-view-date');
-    const deleteBtn = document.getElementById('delete-day-btn');
-    list.innerHTML = '';
-    if (!currentSelectedDate) { dateTitle.innerText = "開始規劃"; deleteBtn.style.display = "none"; return; }
-    dateTitle.innerText = currentSelectedDate;
-    deleteBtn.style.display = "flex";
-    const items = itineraryData.filter(item => item.date === currentSelectedDate);
-    items.forEach((item) => {
-        const card = document.createElement('div');
-        card.className = 'itinerary-card';
-        card.dataset.id = item.id;
-        card.innerHTML = `<div class="drag-handle"><span class="material-icons-round">drag_indicator</span></div><div class="card-time">${item.time || '--:--'}</div><div class="card-content"><h3>${item.title}</h3>${item.note ? `<p>${item.note}</p>` : ''}<div class="card-actions"><span class="btn-m" onclick="openForm('edit', ${item.id})">編輯</span>${item.link ? `<a href="${item.link}" target="_blank" class="btn-m">地點</a>` : ''}<span class="btn-m" style="color:#C66" onclick="deleteItem(${item.id})">移除</span></div></div>`;
-        list.appendChild(card);
-    });
-}
-
+// --- 介面管理 ---
 function showTab(tabId, el) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     if (el) el.classList.add('active');
+    document.getElementById('floating-add-btn').style.display = (tabId === 'itinerary') ? 'flex' : 'none';
 }
 
 function openForm(mode, id = null) {
-    if (!currentSelectedDate && mode === 'add') return alert("請先新增天數");
+    if (!currentSelectedDate && mode === 'add') return;
     document.getElementById('modal-overlay').style.display = 'flex';
     document.getElementById('bottom-drawer').style.transform = 'translateY(0)';
-    const editIdInput = document.getElementById('edit-id');
+    const delBtn = document.getElementById('btn-delete-item');
+    
     if (mode === 'edit') {
         const item = itineraryData.find(i => i.id === id);
-        editIdInput.value = item.id;
+        document.getElementById('edit-id').value = item.id;
         document.getElementById('itemDate').value = item.date;
         document.getElementById('itemTime').value = item.time;
         document.getElementById('itemTitle').value = item.title;
         document.getElementById('itemNote').value = item.note;
         document.getElementById('itemLink').value = item.link;
+        delBtn.style.display = 'block';
     } else {
-        editIdInput.value = "";
+        document.getElementById('edit-id').value = "";
         document.getElementById('itemDate').value = currentSelectedDate;
         document.getElementById('itemTime').value = "";
         document.getElementById('itemTitle').value = "";
         document.getElementById('itemNote').value = "";
         document.getElementById('itemLink').value = "";
+        delBtn.style.display = 'none';
     }
 }
 
 function handleSave() {
     const title = document.getElementById('itemTitle').value;
     const editId = document.getElementById('edit-id').value;
-    if (!title) return alert("請輸入行程名稱");
-    const data = { id: editId ? parseInt(editId) : Date.now(), date: document.getElementById('itemDate').value, time: document.getElementById('itemTime').value, title: title, note: document.getElementById('itemNote').value, link: document.getElementById('itemLink').value };
+    if (!title) return;
+    const data = { id: editId ? parseInt(editId) : Date.now(), date: document.getElementById('itemDate').value, time: document.getElementById('itemTime').value, title, note: document.getElementById('itemNote').value, link: document.getElementById('itemLink').value };
     if (editId) { const idx = itineraryData.findIndex(i => i.id === data.id); itineraryData[idx] = data; }
     else { itineraryData.push(data); }
     saveAndRefresh();
@@ -135,20 +142,7 @@ function saveAndRefresh() {
 
 function closeForm() { 
     document.getElementById('bottom-drawer').style.transform = 'translateY(100%)';
-    setTimeout(() => { document.getElementById('modal-overlay').style.display = 'none'; }, 200);
-}
-
-function renderDateTabs() {
-    const nav = document.getElementById('date-navigator');
-    nav.innerHTML = '';
-    activeDates.forEach(dateStr => {
-        let dateObj = new Date(dateStr);
-        const div = document.createElement('div');
-        div.className = `date-item ${dateStr === currentSelectedDate ? 'active' : ''}`;
-        div.onclick = () => { currentSelectedDate = dateStr; saveAndRefresh(); };
-        div.innerHTML = `<strong>${dateObj.getDate()}</strong><span>${weekdays[dateObj.getDay()]}</span>`;
-        nav.appendChild(div);
-    });
+    setTimeout(() => { document.getElementById('modal-overlay').style.display = 'none'; }, 250);
 }
 
 function addNewDay() {
@@ -165,34 +159,47 @@ function addNewDay() {
 }
 
 function deleteCurrentDay() {
-    if (!confirm("確定要移除整天的規劃嗎？")) return;
+    if (!confirm("確定移除這天？")) return;
     itineraryData = itineraryData.filter(i => i.date !== currentSelectedDate);
     activeDates = activeDates.filter(d => d !== currentSelectedDate);
     currentSelectedDate = activeDates.length > 0 ? activeDates[0] : "";
     saveAndRefresh();
 }
 
-function deleteItem(id) {
-    if (!confirm("移除行程？")) return;
+function handleDeleteItem() {
+    const id = parseInt(document.getElementById('edit-id').value);
     itineraryData = itineraryData.filter(i => i.id !== id);
     saveAndRefresh();
+    closeForm();
 }
 
 function calculateBill() {
     const a = document.getElementById('billAmount').value;
     const p = document.getElementById('billPeople').value;
-    if (a > 0 && p > 0) document.getElementById('billResultText').innerText = `平均每人：$ ${Math.ceil(a/p)}`;
+    if (a > 0 && p > 0) document.getElementById('billResultText').innerText = `Result: $ ${Math.ceil(a/p)}`;
 }
 
-function saveNote() { localStorage.setItem('travelNote', document.getElementById('noteInput').value); alert("儲存成功"); }
+function saveNote() { localStorage.setItem('travelNote', document.getElementById('noteInput').value); alert("Saved!"); }
+
+function initSwipeToClose() {
+    const swipeBar = document.getElementById('swipe-bar');
+    const drawer = document.getElementById('bottom-drawer');
+    let startY = 0;
+    swipeBar.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; });
+    swipeBar.addEventListener('touchmove', (e) => {
+        let deltaY = e.touches[0].clientY - startY;
+        if (deltaY > 0) drawer.style.transform = `translateY(${deltaY}px)`;
+    });
+    swipeBar.addEventListener('touchend', (e) => { if (e.changedTouches[0].clientY - startY > 100) closeForm(); drawer.style.transform = `translateY(0)`; });
+}
 
 function addItem(type) {
     const input = document.getElementById('shoppingInput');
     const list = document.getElementById('shoppingList');
     if (!input.value.trim()) return;
     const li = document.createElement('li');
-    li.style = "background:white; padding:15px; margin-bottom:10px; border-radius:12px; display:flex; justify-content:space-between; border:1px solid #EEE;";
-    li.innerHTML = `<span>${input.value}</span><span style="color:#C66" onclick="this.parentElement.remove()">移除</span>`;
+    li.style = "padding:15px 0; border-bottom:1px solid #EEE; display:flex; justify-content:space-between; font-size:14px;";
+    li.innerHTML = `<span>${input.value}</span><span style="color:#C66" onclick="this.parentElement.remove()">remove</span>`;
     list.appendChild(li);
     input.value = '';
 }

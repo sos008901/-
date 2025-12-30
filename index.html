@@ -6,168 +6,7 @@
     <title>旅途誌 | Travel Assistant</title>
     
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    
-    <style>
-        /* --- CSS 樣式區 --- */
-        :root {
-            --bg-color: #FDFCF8;      /* 和紙色 */
-            --primary-color: #4A4E5A; /* 墨石灰 */
-            --accent-color: #A68B5B;  /* 金檀木 */
-            --text-color: #333;
-            --border-color: #E0DDD5;
-        }
-
-        body {
-            font-family: "PingFang TC", "Noto Serif TC", serif;
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        /* 頂部設計 */
-        header {
-            padding: 60px 0 25px 0;
-            text-align: center;
-            background: var(--bg-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        header h1 {
-            font-size: 1.3rem;
-            font-weight: 300;
-            letter-spacing: 8px;
-            margin: 0;
-            color: var(--primary-color);
-        }
-
-        .sub-title {
-            font-size: 10px;
-            color: var(--accent-color);
-            letter-spacing: 3px;
-            margin-top: 6px;
-        }
-
-        /* 內容區 */
-        main {
-            flex: 1;
-            padding: 25px;
-            overflow-y: auto;
-            padding-bottom: 150px; /* 為底部選單留空間 */
-        }
-
-        .tab-content {
-            display: none;
-            max-width: 500px;
-            margin: 0 auto;
-            animation: fadeIn 0.5s ease;
-        }
-
-        .tab-content.active { display: block; }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        h2 {
-            font-size: 1.1rem;
-            color: var(--accent-color);
-            border-left: 2px solid var(--accent-color);
-            padding-left: 15px;
-            margin-bottom: 30px;
-            font-weight: 400;
-        }
-
-        /* 輸入框美化 */
-        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        input {
-            flex: 1;
-            padding: 12px 5px;
-            border: none;
-            border-bottom: 1px solid var(--border-color);
-            background: transparent;
-            font-size: 16px;
-            outline: none;
-            transition: 0.3s;
-        }
-        input:focus { border-bottom-color: var(--accent-color); }
-
-        button {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-
-        /* 列表卡片 */
-        li {
-            background: white;
-            padding: 18px;
-            margin-bottom: 12px;
-            border-radius: 12px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-            border: 1px solid #F0EFEA;
-        }
-
-        /* 高級懸浮膠囊選單 (核心修正) */
-        .nav-dock {
-            position: fixed;
-            bottom: calc(30px + env(safe-area-inset-bottom)); /* 自動避開 iPhone 橫條 */
-            left: 50%;
-            transform: translateX(-50%);
-            width: 90%;
-            max-width: 400px;
-            height: 70px;
-            background: rgba(255, 255, 255, 0.85); /* 磨砂玻璃 */
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 35px;
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            z-index: 10000;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: #AAA;
-            transition: 0.3s;
-            cursor: pointer;
-            padding: 10px;
-        }
-
-        .nav-item .material-icons-round { font-size: 24px; }
-        .nav-item span:last-child { font-size: 10px; margin-top: 4px; letter-spacing: 1px; }
-
-        /* 選中狀態 */
-        .nav-item.active {
-            color: var(--accent-color);
-            transform: translateY(-3px);
-        }
-
-        /* 分帳卡片 */
-        .bill-card {
-            background: #F9F8F4;
-            padding: 30px 20px;
-            border: 1px dashed var(--border-color);
-            text-align: center;
-            border-radius: 15px;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -176,11 +15,11 @@
         <div class="sub-title">TRAVEL ASSISTANT</div>
     </header>
 
-    <main>
+    <main id="scroll-area">
         <section id="itinerary" class="tab-content active">
             <h2>行程規劃</h2>
             <div class="input-group">
-                <input type="text" id="itineraryInput" placeholder="下一站去哪裡？">
+                <input type="text" id="itineraryInput" placeholder="下一個目的地？">
                 <button onclick="addItem('itinerary')">加入</button>
             </div>
             <ul id="itineraryList"></ul>
@@ -191,22 +30,22 @@
             <div class="bill-card">
                 <input type="number" id="billAmount" placeholder="總金額" style="text-align: center;">
                 <input type="number" id="billPeople" placeholder="分攤人數" style="text-align: center;">
-                <button onclick="calculateBill()" style="width: 100%; margin-top: 10px;">計算</button>
-                <p id="billResultText" style="font-size: 1.2rem; color: var(--primary-color); margin-top: 20px;">每人約：$0</p>
+                <button onclick="calculateBill()" style="width: 100%; margin-top: 15px;">開始計算</button>
+                <p id="billResultText">平均每人：$ 0</p>
             </div>
         </section>
 
         <section id="notes" class="tab-content">
             <h2>旅行隨筆</h2>
-            <textarea id="noteInput" style="width:100%; height:200px; border:none; border-bottom:1px solid var(--border-color); background:transparent; font-size:16px; outline:none;" placeholder="在此刻寫下感受..."></textarea>
-            <button onclick="saveNote()" style="margin-top:20px;">儲存內容</button>
-            <p id="noteStatus" style="font-size:12px; color:var(--accent-color);"></p>
+            <textarea id="noteInput" placeholder="寫下此刻的心情..."></textarea>
+            <button onclick="saveNote()">儲存內容</button>
+            <p id="noteStatus"></p>
         </section>
 
         <section id="shopping" class="tab-content">
             <h2>購物清單</h2>
             <div class="input-group">
-                <input type="text" id="shoppingInput" placeholder="想買的紀念品">
+                <input type="text" id="shoppingInput" placeholder="想買什麼紀念品？">
                 <button onclick="addItem('shopping')">新增</button>
             </div>
             <ul id="shoppingList"></ul>
@@ -216,62 +55,22 @@
     <nav class="nav-dock">
         <div class="nav-item active" onclick="showTab('itinerary', this)">
             <span class="material-icons-round">event_note</span>
-            <span>行程</span>
+            <span class="nav-label">行程</span>
         </div>
         <div class="nav-item" onclick="showTab('splitBill', this)">
             <span class="material-icons-round">payments</span>
-            <span>分帳</span>
+            <span class="nav-label">分帳</span>
         </div>
         <div class="nav-item" onclick="showTab('notes', this)">
             <span class="material-icons-round">edit_note</span>
-            <span>隨筆</span>
+            <span class="nav-label">隨筆</span>
         </div>
         <div class="nav-item" onclick="showTab('shopping', this)">
             <span class="material-icons-round">shopping_bag</span>
-            <span>清單</span>
+            <span class="nav-label">清單</span>
         </div>
     </nav>
 
-    <script>
-        /* --- JavaScript 功能區 --- */
-        function showTab(tabId, el) {
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            el.classList.add('active');
-            
-            document.querySelector('main').scrollTop = 0;
-        }
-
-        function addItem(type) {
-            const input = document.getElementById(type === 'itinerary' ? 'itineraryInput' : 'shoppingInput');
-            const list = document.getElementById(type === 'itinerary' ? 'itineraryList' : 'shoppingList');
-            if (!input.value.trim()) return;
-
-            const li = document.createElement('li');
-            li.innerHTML = `<span>${input.value}</span><button style="background:none; color:#C66; border:1px solid #C66; padding:4px 10px; font-size:11px;" onclick="this.parentElement.remove()">移除</button>`;
-            list.appendChild(li);
-            input.value = '';
-        }
-
-        function calculateBill() {
-            const amount = document.getElementById('billAmount').value;
-            const people = document.getElementById('billPeople').value;
-            if (amount > 0 && people > 0) {
-                document.getElementById('billResultText').innerText = `每人約：$ ${Math.ceil(amount / people)}`;
-            }
-        }
-
-        function saveNote() {
-            localStorage.setItem('travelNote', document.getElementById('noteInput').value);
-            document.getElementById('noteStatus').innerText = "已保存";
-            setTimeout(() => document.getElementById('noteStatus').innerText = "", 2000);
-        }
-
-        window.onload = () => {
-            document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
-        };
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>

@@ -1,107 +1,161 @@
-// 全域狀態：儲存所有行程與當前選擇日期
+// 資料儲存
 let itineraryData = JSON.parse(localStorage.getItem('itineraryData')) || [];
-let currentSelectedDate = new Date().toISOString().split('T')[0];
+let activeDates = JSON.parse(localStorage.getItem('activeDates')) || [];
+let currentSelectedDate = localStorage.getItem('lastSelectedDate') || "";
 
-// 初始化
+const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
+
 window.onload = () => {
-    generateDateTabs();
+    if (activeDates.length > 0 && !currentSelectedDate) {
+        currentSelectedDate = activeDates[0];
+    }
+    renderDateTabs();
     renderDailyList();
     document.getElementById('noteInput').value = localStorage.getItem('travelNote') || "";
 };
 
-// 1. 生成頂部日期切換標籤 (顯示今天前後 7 天作為範例)
-function generateDateTabs() {
+// --- 天數管理功能 ---
+
+// 1. 新增一天
+function addNewDay() {
+    let nextDate;
+    if (activeDates.length === 0) {
+        // 如果還沒有任何日期，就從今天開始
+        nextDate = new Date().toISOString().split('T')[0];
+    } else {
+        // 從最後一天往後加一天
+        let lastDate = new Date(activeDates[activeDates.length - 1]);
+        lastDate.setDate(lastDate.getDate() + 1);
+        nextDate = lastDate.toISOString().split('T')[0];
+    }
+    
+    activeDates.push(nextDate);
+    currentSelectedDate = nextDate;
+    saveAndRefresh();
+}
+
+// 2. 刪除當前選中的整天行程
+function deleteCurrentDay() {
+    if (!currentSelectedDate) return;
+    if (!confirm(`確定要刪除 ${currentSelectedDate} 的所有行程與天數嗎？`)) return;
+
+    // 刪除該天的所有行程項目
+    itineraryData = itineraryData.filter(item => item.date !== currentSelectedDate);
+    // 從日期清單中移除
+    activeDates = activeDates.filter(d => d !== currentSelectedDate);
+    
+    // 選中剩下的第一天，或清空
+    currentSelectedDate = activeDates.length > 0 ? activeDates[0] : "";
+    
+    saveAndRefresh();
+}
+
+function saveAndRefresh() {
+    localStorage.setItem('activeDates', JSON.stringify(activeDates));
+    localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
+    localStorage.setItem('lastSelectedDate', currentSelectedDate);
+    renderDateTabs();
+    renderDailyList();
+}
+
+// --- 介面渲染功能 ---
+
+function renderDateTabs() {
     const nav = document.getElementById('date-navigator');
     nav.innerHTML = '';
-    const weekdays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
     
-    for (let i = -2; i < 7; i++) {
-        let date = new Date();
-        date.setDate(date.getDate() + i);
-        let dateStr = date.toISOString().split('T')[0];
-        let dayName = weekdays[date.getDay()];
-        let displayDate = `${date.getMonth() + 1}/${date.getDate()}`;
+    activeDates.forEach(dateStr => {
+        let dateObj = new Date(dateStr);
+        let displayDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+        let dayName = weekdays[dateObj.getDay()];
         
         const div = document.createElement('div');
         div.className = `date-item ${dateStr === currentSelectedDate ? 'active' : ''}`;
         div.onclick = () => {
             currentSelectedDate = dateStr;
-            generateDateTabs();
+            localStorage.setItem('lastSelectedDate', dateStr);
+            renderDateTabs();
             renderDailyList();
         };
         div.innerHTML = `<strong>${displayDate}</strong><span>${dayName}</span>`;
         nav.appendChild(div);
+    });
+}
+
+function renderDailyList() {
+    const list = document.getElementById('daily-list');
+    const dateTitle = document.getElementById('current-view-date');
+    const deleteLink = document.getElementById('delete-day-link');
+    list.innerHTML = '';
+
+    if (!currentSelectedDate) {
+        dateTitle.innerText = "尚未加入天數";
+        deleteLink.style.display = "none";
+        list.innerHTML = '<p style="text-align:center; color:#AAA; margin-top:40px;">請點擊上方「+ 新增天數」開始規劃</p>';
+        return;
+    }
+
+    dateTitle.innerText = `${currentSelectedDate} 行程`;
+    deleteLink.style.display = "block";
+
+    const items = itineraryData
+        .filter(item => item.date === currentSelectedDate)
+        .sort((a, b) => (a.time > b.time ? 1 : -1));
+
+    if (items.length === 0) {
+        list.innerHTML = '<p style="text-align:center; color:#AAA; margin-top:30px;">今日尚無行程，點擊「+」新增行程</p>';
+    } else {
+        items.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'itinerary-card';
+            card.innerHTML = `
+                <div class="card-time">${item.time || '--:--'}</div>
+                <div class="card-content">
+                    <h3>${item.title}</h3>
+                    ${item.note ? `<p>${item.note}</p>` : ''}
+                    <div class="card-action">
+                        ${item.link ? `<a href="${item.link}" target="_blank" class="btn-small">地點/連結</a>` : ''}
+                        <span class="btn-small" style="color:#C66" onclick="deleteItem(${item.id})">移除行程</span>
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+        });
     }
 }
 
-// 2. 切換新增表單顯示
+// --- 其他功能 ---
+
 function toggleAddForm() {
+    if (!currentSelectedDate) return alert("請先新增天數後再加入行程");
     const form = document.getElementById('add-form');
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
     document.getElementById('itemDate').value = currentSelectedDate;
 }
 
-// 3. 儲存行程
 function saveItinerary() {
-    const date = document.getElementById('itemDate').value;
-    const time = document.getElementById('itemTime').value;
     const title = document.getElementById('itemTitle').value;
-    const note = document.getElementById('itemNote').value;
-    const link = document.getElementById('itemLink').value;
+    if (!title) return alert("請輸入行程名稱");
+    
+    const newItem = {
+        id: Date.now(),
+        date: document.getElementById('itemDate').value,
+        time: document.getElementById('itemTime').value,
+        title: title,
+        note: document.getElementById('itemNote').value,
+        link: document.getElementById('itemLink').value
+    };
 
-    if (!date || !title) return alert("請至少輸入日期與行程名稱");
-
-    const newItem = { id: Date.now(), date, time, title, note, link };
     itineraryData.push(newItem);
-    localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
-    
     toggleAddForm();
-    renderDailyList();
-}
-
-// 4. 渲染當日清單
-function renderDailyList() {
-    const list = document.getElementById('daily-list');
-    const title = document.getElementById('current-view-date');
-    list.innerHTML = '';
-    
-    // 過濾出當天的行程並按時間排序
-    const todayItems = itineraryData
-        .filter(item => item.date === currentSelectedDate)
-        .sort((a, b) => (a.time > b.time ? 1 : -1));
-
-    title.innerText = `${currentSelectedDate} 行程`;
-
-    if (todayItems.length === 0) {
-        list.innerHTML = '<p style="text-align:center; color:#AAA; margin-top:30px;">今日尚無行程</p>';
-        return;
-    }
-
-    todayItems.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'itinerary-card';
-        card.innerHTML = `
-            <div class="card-time">${item.time || '--:--'}</div>
-            <div class="card-content">
-                <h3>${item.title}</h3>
-                ${item.note ? `<p>${item.note}</p>` : ''}
-                <div class="card-action">
-                    ${item.link ? `<a href="${item.link}" target="_blank" class="btn-small">查看地點/連結</a>` : ''}
-                    <button class="btn-small" onclick="deleteItem(${item.id})">移除</button>
-                </div>
-            </div>
-        `;
-        list.appendChild(card);
-    });
+    saveAndRefresh();
 }
 
 function deleteItem(id) {
     itineraryData = itineraryData.filter(item => item.id !== id);
-    localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
-    renderDailyList();
+    saveAndRefresh();
 }
 
-// --- 以下為分頁與其他功能維持 ---
 function showTab(tabId, el) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
@@ -119,6 +173,6 @@ function calculateBill() {
 
 function saveNote() {
     localStorage.setItem('travelNote', document.getElementById('noteInput').value);
-    document.getElementById('noteStatus').innerText = "✅ 已存檔";
+    document.getElementById('noteStatus').innerText = "✅ 已儲存";
     setTimeout(() => document.getElementById('noteStatus').innerText = "", 2000);
 }

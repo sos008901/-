@@ -1,10 +1,10 @@
 /* 日式高級優雅風格 */
 :root {
-    --bg-color: #FDFCF8;       /* 和紙色 */
-    --primary-color: #4A4E5A;  /* 墨灰色 */
-    --accent-color: #A68B5B;   /* 金檀色 */
-    --text-color: #333333;     /* 深炭色 */
-    --border-color: #E0DDD5;   /* 淺泥色 */
+    --bg-color: #FDFCF8;      /* 奶油紙張色 */
+    --primary-color: #4A4E5A; /* 墨灰色 */
+    --accent-color: #A68B5B;  /* 金檀色 */
+    --text-color: #333333;
+    --border-color: #E0DDD5;
 }
 
 body {
@@ -16,21 +16,20 @@ body {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    /* 防止手機瀏覽器彈跳影響布局 */
-    overflow: hidden; 
+    overflow: hidden; /* 防止整個頁面被拉動 */
 }
 
 header {
     background: var(--bg-color);
     text-align: center;
-    padding: 40px 0 15px 0;
+    padding: 50px 0 20px 0; /* 增加頂部間距避開動態島 */
     border-bottom: 1px solid var(--border-color);
 }
 
 header h1 {
     font-size: 1.4rem;
     font-weight: 300;
-    letter-spacing: 5px;
+    letter-spacing: 6px;
     margin: 0;
     color: var(--primary-color);
 }
@@ -39,26 +38,27 @@ header h1 {
     font-size: 10px;
     color: var(--accent-color);
     margin-top: 5px;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
 }
 
 main {
     flex: 1;
-    padding: 20px;
+    padding: 25px;
     overflow-y: auto;
-    /* 確保底部內容不被選單擋住，預留足夠空間 */
+    /* 核心修正：增加底部留白，防止內容被導航欄擋住 */
     padding-bottom: calc(120px + env(safe-area-inset-bottom));
 }
 
+/* 內容切換動畫 */
 .tab-content {
     display: none;
     max-width: 500px;
     margin: 0 auto;
-    animation: fadeIn 0.4s ease;
+    animation: fadeIn 0.4s ease-out;
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
+    from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -67,11 +67,11 @@ main {
 }
 
 h2 {
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: var(--accent-color);
     border-left: 2px solid var(--accent-color);
-    padding-left: 12px;
-    margin-bottom: 25px;
+    padding-left: 15px;
+    margin-bottom: 30px;
     font-weight: 400;
 }
 
@@ -79,12 +79,12 @@ h2 {
 input, textarea {
     width: 100%;
     box-sizing: border-box;
-    padding: 12px;
+    padding: 15px 5px;
     border: none;
     border-bottom: 1px solid var(--border-color);
     background: transparent;
     font-size: 16px;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     outline: none;
 }
 
@@ -92,71 +92,59 @@ button {
     background-color: var(--primary-color);
     color: white;
     border: none;
-    padding: 12px 24px;
+    padding: 12px 28px;
     border-radius: 2px;
     font-size: 14px;
     cursor: pointer;
     transition: 0.3s;
 }
 
-button:active {
-    opacity: 0.7;
-}
-
-/* 列表清單樣式 */
-ul { padding: 0; list-style: none; }
-li {
-    background: white;
-    padding: 18px;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #F0EFEA;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-}
-
-/* 底部導覽列：修正手機手勢衝突 */
+/* 底部導覽列 - 修正版 */
 .bottom-nav {
     position: fixed;
     bottom: 0;
     width: 100%;
-    background: rgba(255, 255, 255, 0.98);
-    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(15px);
     display: flex;
     border-top: 1px solid var(--border-color);
     
-    /* 關鍵：大幅度墊高底部，避開手機 Home Bar */
-    padding-bottom: calc(25px + env(safe-area-inset-bottom)); 
-    box-shadow: 0 -5px 20px rgba(0,0,0,0.04);
+    /* 核心修正：env 加上額外的 20px 讓文字明顯浮起來 */
+    padding-bottom: calc(20px + env(safe-area-inset-bottom)); 
+    box-shadow: 0 -5px 25px rgba(0,0,0,0.03);
     z-index: 9999;
 }
 
-.bottom-nav button {
+.nav-item {
     flex: 1;
-    background: none;
-    color: #999;
-    padding: 18px 0;
+    text-align: center;
+    padding: 20px 0 5px 0;
     font-size: 13px;
+    color: #888;
     letter-spacing: 1px;
-    border: none;
-    transition: 0.2s;
+    cursor: pointer;
 }
 
-.bottom-nav button:hover, .bottom-nav button:active {
+.nav-item:active {
     color: var(--accent-color);
 }
 
-/* 分帳顯示卡片 */
-.bill-card {
-    background: #F9F8F4;
-    padding: 30px 20px;
-    border: 1px dashed var(--border-color);
-    text-align: center;
+/* 列表樣式 */
+ul { padding: 0; list-style: none; }
+li {
+    background: white;
+    padding: 20px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #F2F1ED;
 }
 
-#billResultText {
-    font-size: 1.2rem;
-    margin-top: 20px;
-    color: var(--primary-color);
+/* 分帳卡片 */
+.bill-card {
+    background: #F9F8F4;
+    padding: 40px 25px;
+    border: 1px dashed var(--border-color);
+    text-align: center;
 }

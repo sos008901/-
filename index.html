@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>旅途誌 | Travel Assistant</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500&display=swap" rel="stylesheet">
@@ -85,27 +85,12 @@
             <div class="drawer-body">
                 <input type="hidden" id="edit-id">
                 <div class="input-row-flex">
-                    <div class="field date-f">
-                        <label>日期</label>
-                        <input type="date" id="itemDate">
-                    </div>
-                    <div class="field time-f">
-                        <label>時間</label>
-                        <input type="time" id="itemTime">
-                    </div>
+                    <div class="field date-f"><label>日期</label><input type="date" id="itemDate"></div>
+                    <div class="field time-f"><label>時間</label><input type="time" id="itemTime"></div>
                 </div>
-                <div class="field">
-                    <label>行程名稱</label>
-                    <input type="text" id="itemTitle" placeholder="要去哪裡呢？">
-                </div>
-                <div class="field">
-                    <label>詳細備註</label>
-                    <textarea id="itemNote" placeholder="詳細紀錄..."></textarea>
-                </div>
-                <div class="field">
-                    <label>相關連結</label>
-                    <input type="text" id="itemLink" placeholder="Google Maps URL">
-                </div>
+                <div class="field"><label>行程名稱</label><input type="text" id="itemTitle" placeholder="要去哪裡呢？"></div>
+                <div class="field"><label>詳細備註</label><textarea id="itemNote" placeholder="詳細紀錄..."></textarea></div>
+                <div class="field"><label>相關連結</label><input type="text" id="itemLink" placeholder="Google Maps URL"></div>
                 <button class="btn-save-itinerary" onclick="handleSave()">儲存並更新</button>
             </div>
         </div>
@@ -124,7 +109,7 @@
             <span class="material-icons-round">history_edu</span>
             <span class="nav-label">隨筆</span>
         </div>
-        <div class="nav-item" onclick="showTab('shopping', this)">
+        <div class="nav-item" onclick="shoppingTab('shopping', this)">
             <span class="material-icons-round">shopping_bag</span>
             <span class="nav-label">清單</span>
         </div>

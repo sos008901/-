@@ -7,12 +7,11 @@ createApp({
         const days = ref([{ items: [] }]);
         const destination = ref('');
         
-        // 從 LocalStorage 載入設定
+        // --- 狀態管理 ---
         const ghToken = ref(localStorage.getItem('gh_token') || '');
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
         
-        // UI 狀態
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
         const showAddModal = ref(false);
@@ -26,7 +25,7 @@ createApp({
             setTimeout(() => toast.value.show = false, 2500); 
         };
 
-        // --- GitHub 讀取 ---
+        // --- 從 GitHub 讀取資料 ---
         const loadFromGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
@@ -37,16 +36,17 @@ createApp({
                 if (res.ok) {
                     const data = await res.json();
                     dataSha.value = data.sha;
+                    // 解碼 Base64 (支援中文)
                     const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     days.value = content.days || [{ items: [] }];
                     destination.value = content.destination || '';
                     showToast("同步成功");
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Load Failed:", e); }
             isSyncing.value = false;
         };
 
-        // --- GitHub 儲存 ---
+        // --- 儲存資料到 GitHub ---
         const saveToGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
@@ -55,62 +55,85 @@ createApp({
                 destination: destination.value, 
                 updatedAt: new Date().toISOString() 
             };
+            // 編碼 Base64 (支援中文)
             const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
             try {
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
                     method: 'PUT',
-                    headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Authorization': `token ${ghToken.value}`, 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify({ 
-                        message: "Sync Journey", 
+                        message: "Journey Sync", 
                         content: contentBase64, 
                         sha: dataSha.value 
                     })
                 });
                 if (res.ok) {
                     const resData = await res.json();
-                    dataSha.value = resData.content.sha;
+                    dataSha.value = resData.content.sha; // 更新 SHA 以防衝突
                 }
-            } catch (e) { showToast("連線失敗"); }
+            } catch (e) { showToast("連線 GitHub 失敗"); }
             isSyncing.value = false;
         };
 
-        // --- 儲存設定（初次登入或修改） ---
+        // --- 儲存設定 ---
         const saveSettings = () => {
             if (!ghToken.value || !ghRepo.value) {
-                showToast("請填寫完整 GitHub 資訊");
+                showToast("請填寫 Token 與 Repo");
                 return;
             }
             localStorage.setItem('gh_token', ghToken.value);
             localStorage.setItem('gh_repo', ghRepo.value);
             showSettingsModal.value = false;
-            // 嘗試載入舊資料，若無資料則初始化新旅程
+            
             loadFromGitHub().then(() => {
-                if (days.value.length === 0) days.value = [{ items: [] }];
-                saveToGitHub(); // 強制初始化雲端檔案
+                // 如果是新開的，強迫建立一個檔案在 GitHub 上
+                if (!dataSha.value) saveToGitHub();
             });
         };
 
-        // --- 【一鍵清除旅程】 ---
+        // --- 【一鍵清除行程】 ---
         const clearJourney = () => {
-            if (confirm("確定要清除整趟旅程的所有行程嗎？此動作無法復原。")) {
-                days.value = [{ items: [] }]; // 重置為只有一天空白行程
-                destination.value = ""; // 清除目的地
+            if (confirm("確定要刪除所有行程內容嗎？（您的連線設定會保留）")) {
+                days.value = [{ items: [] }];
+                destination.value = "";
                 saveToGitHub();
                 showSettingsModal.value = false;
-                showToast("旅程已重置");
+                showToast("行程已重置");
+            }
+        };
+
+        // --- 【登出並重置】 ---
+        const logout = () => {
+            if (confirm("確定要登出帳號嗎？這會清除此裝置上的所有連線設定。")) {
+                // 清除 LocalStorage
+                localStorage.removeItem('gh_token');
+                localStorage.removeItem('gh_repo');
+                // 清空 reactive 變數
+                ghToken.value = '';
+                ghRepo.value = '';
+                dataSha.value = '';
+                days.value = [{ items: [] }];
+                destination.value = '';
+                showSettingsModal.value = false;
+                showToast("已清除連線資訊");
             }
         };
 
         const addItem = () => {
             if (!newItem.value.title) return;
-            if (!days.value[currentDayIndex.value]) days.value[currentDayIndex.value] = { items: [] };
+            if (!days.value[currentDayIndex.value]) {
+                days.value[currentDayIndex.value] = { items: [] };
+            }
             days.value[currentDayIndex.value].items.push({
                 time: newItem.value.time || '--:--',
                 title: newItem.value.title
             });
             newItem.value = { time: '', title: '' };
             showAddModal.value = false;
-            saveToGitHub();
+            saveToGitHub(); // 新增完自動上傳
         };
 
         onMounted(loadFromGitHub);
@@ -118,7 +141,7 @@ createApp({
         return {
             currentTab, currentDayIndex, days, currentDayItems, destination,
             ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast,
-            newItem, addItem, saveSettings, clearJourney,
+            newItem, addItem, saveSettings, clearJourney, logout,
             onFabClick: () => showAddModal.value = true
         };
     }

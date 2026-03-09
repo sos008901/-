@@ -2,95 +2,115 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
-    <title>旅途誌 | Travel Assistant</title>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>栞 | GitHub Backend 版</title>
+    
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=Cinzel:wght@500;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <header class="dest-header">
-        <div class="dest-top-label">DESTINATION</div>
-        <div class="dest-main">
-            <span id="dest-title">京都</span>
-            <div class="dest-settings"><span class="material-icons-outlined">tune</span></div>
+<div id="app" v-cloak>
+    <div id="app-container" class="bg-washi">
+        
+        <div class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
+            <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-github'"></i>
+            <span>{{ isSyncing ? 'GitHub 同步中...' : (ghToken ? 'GitHub 已連線' : '尚未設定 Token') }}</span>
         </div>
-    </header>
 
-    <main id="scroll-area">
-        <section id="itinerary" class="tab-content active">
-            <div class="date-track-container">
-                <div id="date-navigator" class="date-track"></div>
-                <div class="date-manage-btns">
-                    <button class="circle-ctrl" onclick="deleteCurrentDay()">−</button>
-                    <button class="circle-ctrl" onclick="addNewDay()">+</button>
-                </div>
-            </div>
+        <transition name="fade">
+            <div v-if="toast.show" class="toast-box">{{ toast.message }}</div>
+        </transition>
 
-            <div id="daily-list" class="itinerary-list"></div>
-        </section>
-
-        <section id="splitBill" class="tab-content">
-            <div class="glass-card">
-                <h3 class="card-label">BUDGET</h3>
-                <div class="input-minimal"><label>AMOUNT</label><input type="number" id="billAmount" placeholder="0"></div>
-                <div class="input-minimal"><label>PEOPLE</label><input type="number" id="billPeople" placeholder="1"></div>
-                <button class="btn-premium" onclick="calculateBill()">CALCULATE</button>
-                <div id="billResultText" class="result-text">$ 0</div>
-            </div>
-        </section>
-
-        <section id="notes" class="tab-content">
-            <div class="glass-card">
-                <h3 class="card-label">MEMO</h3>
-                <textarea id="noteInput" class="minimal-textarea" placeholder="Write something..."></textarea>
-                <button class="btn-premium" onclick="saveNote()">SAVE MEMO</button>
-            </div>
-        </section>
-    </main>
-
-    <button id="floating-add-btn" class="fab-black" onclick="openForm('add')">
-        <span class="material-icons-outlined">add</span>
-    </button>
-
-    <div id="modal-overlay" class="modal-blur" style="display:none;">
-        <div class="bottom-sheet" id="bottom-drawer">
-            <div class="sheet-handle" id="swipe-bar"></div>
-            <div class="form-container">
-                <input type="hidden" id="edit-id">
-                <div class="grid-row">
-                    <div class="field"><label>DATE</label><input type="date" id="itemDate"></div>
-                    <div class="field"><label>TIME</label><input type="time" id="itemTime"></div>
-                </div>
-                <div class="field"><label>SCHEDULE TITLE</label><input type="text" id="itemTitle" placeholder="景點名稱"></div>
-                <div class="field"><label>LOCATION LINK</label><input type="text" id="itemLink" placeholder="Google Maps URL"></div>
-                <div class="field"><label>DESCRIPTION</label><textarea id="itemNote" placeholder="備註資訊..."></textarea></div>
-                
-                <div class="modal-btns">
-                    <button id="btn-delete-item" class="btn-delete-text" style="display:none;" onclick="handleDeleteItem()">DELETE THIS ITEM</button>
-                    <button class="btn-save-main" onclick="handleSave()">UPDATE SCHEDULE</button>
+        <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
+            <div class="modal-card">
+                <h3 class="text-center font-serif font-bold mb-6 text-lg tracking-widest">後端同步設定</h3>
+                <div class="space-y-6">
+                    <div>
+                        <label class="input-label">GitHub Token</label>
+                        <input v-model="ghToken" type="password" class="input-rounded" placeholder="ghp_xxxxxxxxxxxx">
+                    </div>
+                    <div>
+                        <label class="input-label">Repository (帳號/名稱)</label>
+                        <input v-model="ghRepo" class="input-rounded" placeholder="yourname/travel-diary">
+                    </div>
+                    <div class="pt-4 border-t border-gray-100">
+                        <label class="input-label">行程目的地</label>
+                        <input v-model="destination" class="input-rounded text-center font-bold">
+                    </div>
+                    <button @click="saveSettings" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl shadow-lg active:scale-95 transition-all">儲存設定並同步</button>
+                    <button @click="confirmResetData" class="w-full py-2 text-red-300 text-[10px] tracking-widest opacity-60">清空本地快取</button>
                 </div>
             </div>
         </div>
+
+        <template v-else>
+            <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-5 flex justify-between items-end h-[calc(140px+env(safe-area-inset-top))]">
+                <div class="border-l-2 border-theme-accent pl-3">
+                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Destination</p>
+                    <h1 class="text-4xl font-serif font-medium tracking-widest text-theme-main">{{ destination || '未命名旅程' }}</h1>
+                </div>
+                <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub hover:bg-gray-50 transition-all">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </header>
+
+            <main class="flex-1 overflow-y-auto pb-40 no-scrollbar p-5">
+                <div class="space-y-4">
+                    <div v-if="days[currentDayIndex].items.length === 0" class="py-20 text-center opacity-30 text-xs">目前沒有行程</div>
+                    <div v-for="item in days[currentDayIndex].items" :key="item.id" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main animate-fade-in">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs font-bold text-theme-accent">{{ item.time }}</span>
+                                <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
+                            </div>
+                            <button @click="deleteItem(item.id)" class="text-gray-200 hover:text-red-400 transition-colors"><i class="fas fa-times"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <button @click="showItemModal = true" class="fab-btn shadow-2xl active:scale-90 transition-transform">
+                <i class="fas fa-plus"></i>
+            </button>
+
+            <nav class="glass-panel absolute bottom-0 w-full h-[calc(80px+env(safe-area-inset-bottom))] flex justify-around items-center">
+                <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'text-theme-accent':'text-theme-sub opacity-50'"><i class="fas fa-calendar-alt text-xl"></i></button>
+                <button @click="currentTab='money'" :class="currentTab==='money'?'text-theme-accent':'text-theme-sub opacity-50'"><i class="fas fa-wallet text-xl"></i></button>
+                <button @click="currentTab='memo'" :class="currentTab==='memo'?'text-theme-accent':'text-theme-sub opacity-50'"><i class="fas fa-book text-xl"></i></button>
+            </nav>
+        </template>
+
+        <div v-if="showItemModal" class="modal-mask" @click.self="showItemModal = false">
+            <div class="modal-card">
+                <h3 class="text-center font-bold mb-6">新增行程</h3>
+                <input v-model="formItem.title" class="input-rounded mb-4" placeholder="要去哪裡？">
+                <div class="flex gap-2 mb-6">
+                    <input v-model="tempHour" type="tel" maxlength="2" class="input-rounded text-center" placeholder="12">
+                    <input v-model="tempMinute" type="tel" maxlength="2" class="input-rounded text-center" placeholder="00">
+                </div>
+                <button @click="saveItem" class="w-full py-4 bg-theme-accent text-white font-bold rounded-3xl shadow-lg">儲存並同步 GitHub</button>
+            </div>
+        </div>
+
+        <div v-if="confirmModal.show" class="modal-mask">
+            <div class="bg-white w-72 p-8 text-center rounded-3xl shadow-2xl">
+                 <h3 class="font-bold mb-2 text-lg">{{ confirmModal.title }}</h3>
+                 <p class="text-xs text-gray-400 mb-8">{{ confirmModal.message }}</p>
+                 <div class="flex gap-3">
+                     <button @click="confirmModal.show=false" class="flex-1 py-3 rounded-2xl bg-gray-50 text-xs font-bold">取消</button>
+                     <button @click="executeConfirm" class="flex-1 py-3 rounded-2xl bg-theme-accent text-white text-xs font-bold">確認</button>
+                 </div>
+            </div>
+        </div>
+
     </div>
+</div>
 
-    <nav class="main-nav">
-        <div class="nav-item active" onclick="showTab('itinerary', this)">
-            <span class="material-icons-outlined">map</span>
-            <div class="nav-text">SCHEDULE</div>
-        </div>
-        <div class="nav-item" onclick="showTab('splitBill', this)">
-            <span class="material-icons-outlined">payments</span>
-            <div class="nav-text">BUDGET</div>
-        </div>
-        <div class="nav-item" onclick="showTab('notes', this)">
-            <span class="material-icons-outlined">sticky_note_2</span>
-            <div class="nav-text">MEMO</div>
-        </div>
-    </nav>
-
-    <script src="script.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

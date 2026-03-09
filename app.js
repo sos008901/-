@@ -51,8 +51,7 @@ createApp({
             date.setDate(date.getDate() + index);
             const mm = date.getMonth() + 1;
             const dd = date.getDate();
-            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
-            return { date: `${mm}/${dd}`, week: `週${weekDays[date.getDay()]}` };
+            return { date: `${mm}/${dd}` };
         };
 
         const showToast = (msg) => { 
@@ -101,29 +100,8 @@ createApp({
                     dataSha.value = resData.content.sha;
                     showToast("同步成功");
                 }
-            } catch (e) { showToast("連線失敗"); }
+            } catch (e) { showToast("同步失敗"); }
             isSyncing.value = false;
-        };
-
-        const moveDay = (index, direction) => {
-            const newIndex = index + direction;
-            if (newIndex < 0 || newIndex >= days.value.length) return;
-            const newDays = [...days.value];
-            [newDays[index], newDays[newIndex]] = [newDays[newIndex], newDays[index]];
-            days.value = newDays;
-            currentDayIndex.value = newIndex;
-            saveToGitHub();
-            scrollToActive();
-        };
-
-        const deleteDay = (index) => {
-            if (days.value.length <= 1) return showToast("至少需保留一天");
-            if (confirm(`確定要刪除 Day ${index + 1} 嗎？`)) {
-                days.value.splice(index, 1);
-                currentDayIndex.value = Math.min(currentDayIndex.value, days.value.length - 1);
-                saveToGitHub();
-                scrollToActive();
-            }
         };
 
         const addNewDay = () => {
@@ -138,42 +116,40 @@ createApp({
             const formattedTime = `${newItem.value.timeHour}:${newItem.value.timeMinute}`;
             days.value[currentDayIndex.value].items.push({
                 time: formattedTime,
-                title: newItem.value.title,
-                address: newItem.value.address,
-                note: newItem.value.note
+                title: newItem.value.title
             });
-            newItem.value = { timeHour: '09', timeMinute: '00', title: '', address: '', note: '' };
+            newItem.value = { timeHour: '09', timeMinute: '00', title: '' };
             showAddModal.value = false;
             saveToGitHub();
         };
 
-        const addExpense = () => {
-            if (!newExpense.value.item || !newExpense.value.amount) return;
-            expenses.value.push({ ...newExpense.value, id: Date.now() });
-            newExpense.value = { item: '', amount: '' };
-            showMoneyModal.value = false;
+        const moveDay = (index, direction) => {
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= days.value.length) return;
+            const newDays = [...days.value];
+            [newDays[index], newDays[newIndex]] = [newDays[newIndex], newDays[index]];
+            days.value = newDays;
+            currentDayIndex.value = newIndex;
             saveToGitHub();
+            scrollToActive();
         };
 
-        const addMemo = () => {
-            if (!newMemo.value.content) return;
-            memos.value.push({ content: newMemo.value.content, id: Date.now() });
-            newMemo.value = { content: '' };
-            showMemoModal.value = false;
-            saveToGitHub();
+        const deleteDay = (index) => {
+            if (days.value.length <= 1) return;
+            if (confirm("Delete Day?")) {
+                days.value.splice(index, 1);
+                currentDayIndex.value = 0;
+                saveToGitHub();
+            }
         };
 
-        onMounted(() => { 
-            if (isInitialized.value) loadFromGitHub(); 
-        });
+        onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
-            isInitialized, currentTab, days, currentDayIndex, currentDayItems, 
-            expenses, memos, destination, startDate, scrollContainer,
-            ghToken, ghRepo, isSyncing, 
-            showSettingsModal, showAddModal, showMoneyModal, showMemoModal, toast,
+            isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,
+            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, showMoneyModal, showMemoModal, toast,
             newItem, newExpense, newMemo,
-            addItem, addExpense, addMemo, addNewDay, getDayInfo, moveDay, deleteDay, selectDay,
+            addItem, addNewDay, getDayInfo, selectDay, moveDay, deleteDay,
             saveSettings: async () => {
                 localStorage.setItem('gh_token', ghToken.value);
                 localStorage.setItem('gh_repo', ghRepo.value);
@@ -184,8 +160,6 @@ createApp({
             saveToGitHub,
             onFabClick: () => {
                 if (currentTab.value === 'schedule') showAddModal.value = true;
-                else if (currentTab.value === 'money') showMoneyModal.value = true;
-                else if (currentTab.value === 'memo') showMemoModal.value = true;
             },
             logout: () => { localStorage.clear(); location.reload(); }
         };

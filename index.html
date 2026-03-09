@@ -31,7 +31,7 @@
                         <input v-model="destination" class="login-input" placeholder="目的地">
                         <input v-model="startDate" type="date" class="login-input">
                     </div>
-                    <button @click="saveSettings" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg">START JOURNEY</button>
+                    <button @click="saveSettings" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg">進入旅程</button>
                 </div>
             </div>
         </template>
@@ -40,18 +40,18 @@
             <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-4">
                 <div class="flex justify-between items-start mb-6">
                     <div>
-                        <p class="text-[10px] text-theme-accent font-black tracking-[0.2em] uppercase mb-1">Destination</p>
-                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase">{{ destination || 'New Trip' }}</h1>
+                        <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">DESTINATION</p>
+                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase">{{ destination || 'FUKUOKA' }}</h1>
                         <p class="text-[10px] text-gray-400 mt-1 font-bold">{{ startDate }}</p>
                     </div>
-                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-theme-sub"><i class="fas fa-cog"></i></button>
+                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-theme-sub shadow-sm"><i class="fas fa-cog"></i></button>
                 </div>
 
                 <div v-if="currentTab === 'schedule'">
                     <div class="flex items-center justify-between mb-4 px-1">
                         <div class="flex gap-2">
-                            <button @click="moveDay(currentDayIndex, -1)" :disabled="currentDayIndex === 0" class="day-ctrl-btn" :class="{'opacity-20': currentDayIndex === 0}"><i class="fas fa-arrow-left"></i></button>
-                            <button @click="moveDay(currentDayIndex, 1)" :disabled="currentDayIndex === days.length - 1" class="day-ctrl-btn" :class="{'opacity-20': currentDayIndex === days.length - 1}"><i class="fas fa-arrow-right"></i></button>
+                            <button @click="moveDay(currentDayIndex, -1)" class="day-ctrl-btn"><i class="fas fa-arrow-left"></i></button>
+                            <button @click="moveDay(currentDayIndex, 1)" class="day-ctrl-btn"><i class="fas fa-arrow-right"></i></button>
                         </div>
                         <button @click="deleteDay(currentDayIndex)" class="text-[9px] font-bold text-red-400 uppercase tracking-widest">Delete Day</button>
                     </div>
@@ -76,9 +76,8 @@
                             <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
                         </div>
                     </div>
+                    <div v-if="currentDayItems.length === 0" class="text-center py-24 text-gray-300 text-sm">尚無行程</div>
                 </div>
-                <div v-if="currentTab === 'money'" class="p-10 text-center text-gray-300">Budget list is empty</div>
-                <div v-if="currentTab === 'memo'" class="p-10 text-center text-gray-300">Memo is empty</div>
             </main>
 
             <button @click="onFabClick" class="fab-btn"><i class="fas fa-plus"></i></button>
@@ -101,24 +100,45 @@
 
         <div v-if="showAddModal" class="modal-mask" @click.self="showAddModal = false">
             <div class="modal-card !p-8 !max-w-[22rem]">
-                <h2 class="text-center font-serif font-black text-xl mb-8 uppercase tracking-widest">New Event</h2>
+                <h2 class="text-center font-serif font-black text-2xl text-theme-main mb-8 uppercase tracking-widest">New Event</h2>
                 <div class="space-y-6">
                     <div class="space-y-2">
-                        <label class="modal-label">Title</label>
-                        <input v-model="newItem.title" class="modal-input" placeholder="Event Name">
+                        <label class="modal-label uppercase tracking-widest">Title</label>
+                        <div class="relative"><input v-model="newItem.title" class="modal-input" placeholder="景點名稱"><i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-gray-300"></i></div>
                     </div>
-                    <div class="space-y-2">
-                        <label class="modal-label text-center block">Time</label>
+                    <div class="space-y-2 text-center">
+                        <label class="modal-label uppercase tracking-widest">Time</label>
                         <div class="flex items-center justify-center gap-4 bg-[#F2F4F4] py-3 rounded-2xl">
                             <input v-model="newItem.timeHour" class="time-field" placeholder="09">
-                            <span>:</span>
+                            <span class="text-gray-400 font-bold">:</span>
                             <input v-model="newItem.timeMinute" class="time-field" placeholder="00">
                         </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="modal-label uppercase tracking-widest">Link / Address</label>
+                        <input v-model="newItem.address" class="modal-input" placeholder="地址或網址">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="modal-label uppercase tracking-widest">Note</label>
+                        <textarea v-model="newItem.note" class="modal-input h-24" placeholder="備註..."></textarea>
                     </div>
                     <button @click="addItem" class="save-event-btn">SAVE EVENT</button>
                 </div>
             </div>
         </div>
+
+        <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
+            <div class="modal-card">
+                <h3 class="text-center font-serif font-bold mb-6 text-xl">Settings</h3>
+                <div class="space-y-4">
+                    <input v-model="destination" class="modal-input text-center font-bold" placeholder="目的地">
+                    <input v-model="startDate" type="date" class="modal-input">
+                    <button @click="saveToGitHub" class="save-event-btn">UPDATE DATA</button>
+                    <button @click="logout" class="w-full py-2 text-red-500 font-bold text-xs bg-red-50 rounded-2xl">LOGOUT</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 <script type="module" src="app.js"></script>

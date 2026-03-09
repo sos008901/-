@@ -1,186 +1,118 @@
-// --- 核心安全防護：禁止縮放 ---
-document.addEventListener('touchstart', (e) => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
-let lastEnd = 0;
-document.addEventListener('touchend', (e) => {
-    let now = Date.now();
-    if (now - lastEnd <= 300) e.preventDefault();
-    lastEnd = now;
-}, false);
-document.addEventListener('gesturestart', (e) => e.preventDefault());
+const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
-let itineraryData = JSON.parse(localStorage.getItem('itineraryData')) || [];
-let activeDates = JSON.parse(localStorage.getItem('activeDates')) || [];
-let currentSelectedDate = localStorage.getItem('lastSelectedDate') || "";
-
-window.onload = () => {
-    if (activeDates.length > 0 && !currentSelectedDate) currentSelectedDate = activeDates[0];
-    renderDateTabs();
-    renderDailyList();
-    initDragDrop();
-    initSwipeClose();
-};
-
-// --- 行程渲染：復刻 IMG_2142 結構 ---
-function renderDailyList() {
-    const list = document.getElementById('daily-list');
-    list.innerHTML = '';
-    if (!currentSelectedDate) return;
-
-    const items = itineraryData.filter(item => item.date === currentSelectedDate);
-    
-    items.forEach((item) => {
-        const card = document.createElement('div');
-        card.className = 'itinerary-card';
-        card.dataset.id = item.id;
-        card.onclick = () => openForm('edit', item.id);
+createApp({
+    setup() {
+        // --- 狀態定義 ---
+        const currentTab = ref('schedule');
+        const currentDayIndex = ref(0);
+        const days = ref([{ items: [] }]);
+        const destination = ref('');
         
-        card.innerHTML = `
-            <div class="drag-handle"><span class="material-icons-outlined">drag_indicator</span></div>
-            <div class="card-time">${item.time || '--:--'}</div>
-            <div class="card-body">
-                <h3>${item.title}</h3>
-                ${item.link ? `<div class="card-info"><span class="material-icons-outlined">place</span><a href="${item.link}" target="_blank" onclick="event.stopPropagation()">${item.link}</a></div>` : ''}
-                ${item.note ? `<div class="card-info"><span class="material-icons-outlined">sticky_note_2</span><p>${item.note}</p></div>` : ''}
-            </div>
-        `;
-        list.appendChild(card);
-    });
-}
+        // GitHub 設定
+        const ghToken = ref(localStorage.getItem('gh_token') || '');
+        const ghRepo = ref(localStorage.getItem('gh_repo') || '');
+        const dataSha = ref(''); 
 
-function initDragDrop() {
-    Sortable.create(document.getElementById('daily-list'), {
-        handle: '.drag-handle', animation: 250,
-        onEnd: function () {
-            const newIds = Array.from(document.querySelectorAll('.itinerary-card')).map(c => parseInt(c.dataset.id));
-            const others = itineraryData.filter(i => i.date !== currentSelectedDate);
-            const sorted = newIds.map(id => itineraryData.find(i => i.id === id)).filter(Boolean);
-            itineraryData = [...others, ...sorted];
-            localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
-        }
-    });
-}
+        const isSyncing = ref(false);
+        const showSettingsModal = ref(false);
+        const showItemModal = ref(false);
+        const formItem = ref({});
+        const tempHour = ref('09'), tempMinute = ref('00');
+        const toast = ref({ show: false, message: '' });
+        const confirmModal = ref({ show: false, title: '', message: '', callback: null });
 
-// --- 日期管理 ---
-function renderDateTabs() {
-    const nav = document.getElementById('date-navigator');
-    nav.innerHTML = '';
-    activeDates.forEach((dateStr, idx) => {
-        let d = new Date(dateStr);
-        const div = document.createElement('div');
-        div.className = `date-item ${dateStr === currentSelectedDate ? 'active' : ''}`;
-        div.onclick = () => { currentSelectedDate = dateStr; saveRefresh(); };
-        div.innerHTML = `<span>DAY ${idx+1}</span><strong>${d.getMonth()+1}/${d.getDate()}</strong>`;
-        nav.appendChild(div);
-    });
-}
+        // --- 工具方法 ---
+        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
 
-function addNewDay() {
-    let next;
-    if (activeDates.length === 0) next = new Date().toISOString().split('T')[0];
-    else {
-        let last = new Date(activeDates[activeDates.length-1]);
-        last.setDate(last.getDate()+1);
-        next = last.toISOString().split('T')[0];
+        // --- GitHub API 核心邏輯 ---
+
+        // 讀取 GitHub 上的 data.json
+        const loadFromGitHub = async () => {
+            if (!ghToken.value || !ghRepo.value) return;
+            isSyncing.value = true;
+            try {
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
+                    headers: { 'Authorization': `token ${ghToken.value}`, 'Accept': 'application/vnd.github.v3+json' }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    dataSha.value = data.sha;
+                    // 解碼 Base64 (支援 UTF-8 中文)
+                    const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                    days.value = content.days || [{ items: [] }];
+                    destination.value = content.destination || '';
+                    showToast("已從 GitHub 同步最新資料");
+                }
+            } catch (e) { console.error(e); showToast("GitHub 讀取失敗"); }
+            isSyncing.value = false;
+        };
+
+        // 更新資料到 GitHub
+        const saveToGitHub = async () => {
+            if (!ghToken.value || !ghRepo.value) return;
+            isSyncing.value = true;
+            
+            const contentObj = { days: days.value, destination: destination.value, updatedAt: new Date().toISOString() };
+            const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
+
+            try {
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: "Sync from Shiori App",
+                        content: contentBase64,
+                        sha: dataSha.value
+                    })
+                });
+
+                if (res.ok) {
+                    const resData = await res.json();
+                    dataSha.value = resData.content.sha;
+                    showToast("同步成功！");
+                } else { showToast("同步失敗，請確認 data.json 是否存在"); }
+            } catch (e) { showToast("連線 GitHub 失敗"); }
+            isSyncing.value = false;
+        };
+
+        // --- UI 操作 ---
+        const saveSettings = () => {
+            localStorage.setItem('gh_token', ghToken.value);
+            localStorage.setItem('gh_repo', ghRepo.value);
+            showSettingsModal.value = false;
+            loadFromGitHub();
+        };
+
+        const saveItem = () => {
+            if(!formItem.value.title) return showToast("請輸入名稱");
+            days.value[currentDayIndex.value].items.push({
+                id: Date.now(),
+                title: formItem.value.title,
+                time: `${tempHour.value}:${tempMinute.value}`
+            });
+            showItemModal.value = false;
+            saveToGitHub();
+        };
+
+        const deleteItem = (id) => {
+            days.value[currentDayIndex.value].items = days.value[currentDayIndex.value].items.filter(i => i.id !== id);
+            saveToGitHub();
+        };
+
+        const executeConfirm = () => { if(confirmModal.value.callback) confirmModal.value.callback(); confirmModal.value.show = false; };
+
+        const confirmResetData = () => {
+            confirmModal.value = { show: true, title: '重設', message: '這會清空本地快取，資料不會從 GitHub 消失。', callback: () => { localStorage.clear(); location.reload(); } };
+        };
+
+        onMounted(loadFromGitHub);
+
+        return {
+            currentTab, currentDayIndex, days, destination,
+            ghToken, ghRepo, isSyncing, showSettingsModal, showItemModal,
+            formItem, tempHour, tempMinute, toast, confirmModal,
+            saveSettings, saveItem, deleteItem, executeConfirm, confirmResetData,
+            getDayDate: (idx) => `Day ${idx+1}` // 簡化版日期
+        };
     }
-    activeDates.push(next);
-    currentSelectedDate = next;
-    saveRefresh();
-}
-
-function deleteCurrentDay() {
-    if (!confirm("確定移除這天？")) return;
-    itineraryData = itineraryData.filter(i => i.date !== currentSelectedDate);
-    activeDates = activeDates.filter(d => d !== currentSelectedDate);
-    currentSelectedDate = activeDates.length > 0 ? activeDates[0] : "";
-    saveRefresh();
-}
-
-// --- 表單邏輯 ---
-function openForm(mode, id = null) {
-    if (!currentSelectedDate && mode === 'add') return;
-    document.getElementById('modal-overlay').style.display = 'flex';
-    document.getElementById('bottom-drawer').style.transform = 'translateY(0)';
-    
-    if (mode === 'edit') {
-        const i = itineraryData.find(x => x.id === id);
-        document.getElementById('edit-id').value = i.id;
-        document.getElementById('itemDate').value = i.date;
-        document.getElementById('itemTime').value = i.time;
-        document.getElementById('itemTitle').value = i.title;
-        document.getElementById('itemNote').value = i.note;
-        document.getElementById('itemLink').value = i.link;
-        document.getElementById('btn-delete-item').style.display = 'block';
-    } else {
-        document.getElementById('edit-id').value = "";
-        document.getElementById('itemDate').value = currentSelectedDate;
-        document.getElementById('itemTime').value = "";
-        document.getElementById('itemTitle').value = "";
-        document.getElementById('itemNote').value = "";
-        document.getElementById('itemLink').value = "";
-        document.getElementById('btn-delete-item').style.display = 'none';
-    }
-}
-
-function handleSave() {
-    const title = document.getElementById('itemTitle').value;
-    const editId = document.getElementById('edit-id').value;
-    if (!title) return;
-    const data = { id: editId ? parseInt(editId) : Date.now(), date: document.getElementById('itemDate').value, time: document.getElementById('itemTime').value, title, note: document.getElementById('itemNote').value, link: document.getElementById('itemLink').value };
-    if (editId) {
-        const idx = itineraryData.findIndex(x => x.id === data.id);
-        itineraryData[idx] = data;
-    } else { itineraryData.push(data); }
-    saveRefresh();
-    closeForm();
-}
-
-function handleDeleteItem() {
-    const id = parseInt(document.getElementById('edit-id').value);
-    itineraryData = itineraryData.filter(x => x.id !== id);
-    saveRefresh();
-    closeForm();
-}
-
-function closeForm() {
-    document.getElementById('bottom-drawer').style.transform = 'translateY(100%)';
-    setTimeout(() => { document.getElementById('modal-overlay').style.display = 'none'; }, 250);
-}
-
-function saveRefresh() {
-    localStorage.setItem('activeDates', JSON.stringify(activeDates));
-    localStorage.setItem('itineraryData', JSON.stringify(itineraryData));
-    localStorage.setItem('lastSelectedDate', currentSelectedDate);
-    renderDateTabs();
-    renderDailyList();
-}
-
-function showTab(tabId, el) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    el.classList.add('active');
-    document.getElementById('floating-add-btn').style.display = (tabId === 'itinerary') ? 'flex' : 'none';
-}
-
-function initSwipeClose() {
-    const bar = document.getElementById('swipe-bar');
-    const drawer = document.getElementById('bottom-drawer');
-    let startY = 0;
-    bar.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; });
-    bar.addEventListener('touchmove', (e) => {
-        let dy = e.touches[0].clientY - startY;
-        if (dy > 0) drawer.style.transform = `translateY(${dy}px)`;
-    });
-    bar.addEventListener('touchend', (e) => {
-        if (e.changedTouches[0].clientY - startY > 100) closeForm();
-        else drawer.style.transform = `translateY(0)`;
-    });
-}
-
-function calculateBill() {
-    const a = document.getElementById('billAmount').value;
-    const p = document.getElementById('billPeople').value;
-    if (a > 0 && p > 0) document.getElementById('billResultText').innerText = `$ ${Math.ceil(a/p)}`;
-}
-
-function saveNote() { localStorage.setItem('travelNote', document.getElementById('noteInput').value); alert("Saved!"); }
+}).mount('#app');

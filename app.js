@@ -14,20 +14,24 @@ createApp({
         const dataSha = ref(''); 
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
-        const showAddModal = ref(false); // 控制新增頁面顯示
+        const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
-        // 還原截圖要求的資料結構
-        const newItem = ref({ 
-            timeHour: '09', 
-            timeMinute: '00', 
-            title: '', 
-            address: '', 
-            note: '' 
-        });
+        const newItem = ref({ timeHour: '09', timeMinute: '00', title: '', address: '', note: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
         const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
+
+        const scrollToActive = () => {
+            nextTick(() => {
+                const container = scrollContainer.value;
+                const activeCard = document.getElementById(`day-card-${currentDayIndex.value}`);
+                if (container && activeCard) {
+                    const scrollLeft = activeCard.offsetLeft - (container.offsetWidth / 2) + (activeCard.offsetWidth / 2);
+                    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+                }
+            });
+        };
 
         const loadFromGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
@@ -52,12 +56,7 @@ createApp({
         const saveToGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
-            const contentObj = { 
-                days: days.value, 
-                destination: destination.value, 
-                startDate: startDate.value,
-                updatedAt: new Date().toISOString() 
-            };
+            const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value, updatedAt: new Date().toISOString() };
             const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
             try {
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
@@ -82,10 +81,37 @@ createApp({
                 address: newItem.value.address,
                 note: newItem.value.note
             });
-            // 重置
             newItem.value = { timeHour: '09', timeMinute: '00', title: '', address: '', note: '' };
             showAddModal.value = false;
             saveToGitHub();
+        };
+
+        // --- 新增：天數異動邏輯 ---
+        const addNewDay = () => {
+            days.value.push({ items: [] });
+            currentDayIndex.value = days.value.length - 1;
+            saveToGitHub();
+            scrollToActive();
+        };
+
+        const moveDay = (index, dir) => {
+            const newIdx = index + dir;
+            if (newIdx < 0 || newIdx >= days.value.length) return;
+            const temp = days.value[index];
+            days.value[index] = days.value[newIdx];
+            days.value[newIdx] = temp;
+            currentDayIndex.value = newIdx;
+            saveToGitHub();
+            scrollToActive();
+        };
+
+        const deleteDay = (index) => {
+            if (days.value.length <= 1) return showToast("至少需保留一天");
+            if (confirm(`確定要刪除 Day ${index + 1} 嗎？`)) {
+                days.value.splice(index, 1);
+                currentDayIndex.value = Math.max(0, index - 1);
+                saveToGitHub();
+            }
         };
 
         const saveSettings = () => {
@@ -99,9 +125,10 @@ createApp({
 
         return {
             currentTab, currentDayIndex, days, currentDayItems, destination, startDate,
-            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem,
-            saveSettings, addItem, 
-            onFabClick: () => showAddModal.value = true, // 修復：點擊後開啟新增頁面
+            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem, scrollContainer,
+            saveSettings, addItem, addNewDay, moveDay, deleteDay, 
+            onFabClick: () => showAddModal.value = true,
+            selectDay: (i) => { currentDayIndex.value = i; scrollToActive(); },
             getDayInfo: (i) => {
                 if (!startDate.value) return { date: '-' };
                 const d = new Date(startDate.value);

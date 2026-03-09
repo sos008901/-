@@ -13,70 +13,51 @@
 <body>
 <div id="app" v-cloak>
     <div id="app-container" class="bg-washi relative w-full h-full flex flex-col">
-        
         <div class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
-            <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-check-circle'"></i>
+            <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-github'"></i>
             <span>{{ isSyncing ? 'SYNCING...' : 'SYNCED' }}</span>
         </div>
 
         <transition name="fade"><div v-if="toast.show" class="toast-box">{{ toast.message }}</div></transition>
 
-        <template v-if="!isInitialized">
-            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8">
-                <h1 class="text-7xl font-serif mb-10 tracking-widest">栞</h1>
+        <template v-if="!ghToken || !ghRepo">
+            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-6 text-center">
+                <h1 class="text-7xl font-serif mb-6 tracking-widest">栞</h1>
                 <div class="w-full max-w-xs space-y-4">
                     <input v-model="ghToken" type="password" class="login-input" placeholder="GitHub Token">
                     <input v-model="ghRepo" class="login-input" placeholder="帳號/專案名稱">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input v-model="destination" class="login-input" placeholder="目的地">
-                        <input v-model="startDate" type="date" class="login-input">
-                    </div>
-                    <button @click="saveSettings" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg">進入旅程</button>
+                    <button @click="showSettingsModal = true" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl">前往設定</button>
                 </div>
             </div>
         </template>
 
         <template v-else>
-            <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-4">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">DESTINATION</p>
-                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase">{{ destination || 'FUKUOKA' }}</h1>
-                        <p class="text-[10px] text-gray-400 mt-1 font-bold">{{ startDate }}</p>
+            <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-5">
+                <div class="flex justify-between items-end">
+                    <div class="border-l-2 border-theme-accent pl-3">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Destination</p>
+                        <h1 class="text-4xl font-serif font-medium tracking-widest text-theme-main uppercase">{{ destination }}</h1>
                     </div>
-                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-theme-sub shadow-sm"><i class="fas fa-cog"></i></button>
+                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub shadow-sm"><i class="fas fa-cog"></i></button>
                 </div>
 
-                <div v-if="currentTab === 'schedule'">
-                    <div class="flex items-center justify-between mb-4 px-1">
-                        <div class="flex gap-2">
-                            <button @click="moveDay(currentDayIndex, -1)" class="day-ctrl-btn"><i class="fas fa-arrow-left"></i></button>
-                            <button @click="moveDay(currentDayIndex, 1)" class="day-ctrl-btn"><i class="fas fa-arrow-right"></i></button>
-                        </div>
-                        <button @click="deleteDay(currentDayIndex)" class="text-[9px] font-bold text-red-400 uppercase tracking-widest">Delete Day</button>
-                    </div>
-                    <div ref="scrollContainer" class="flex gap-3 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth">
-                        <button v-for="(day, index) in days" :key="index" :id="'day-card-' + index" @click="selectDay(index)"
-                                :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'"
-                                class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 shadow-sm border">
-                            <span class="text-[9px] font-bold opacity-60 mb-1">DAY {{ index + 1 }}</span>
-                            <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
-                        </button>
-                        <button @click="addNewDay" class="flex-shrink-0 w-16 h-20 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 flex items-center justify-center"><i class="fas fa-plus"></i></button>
-                    </div>
+                <div class="flex gap-3 overflow-x-auto no-scrollbar py-6">
+                    <button v-for="(day, index) in days" :key="index" @click="currentDayIndex = index"
+                            :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'"
+                            class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all border shadow-sm">
+                        <span class="text-[9px] font-bold opacity-60 mb-1">DAY {{ index + 1 }}</span>
+                        <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
+                    </button>
                 </div>
             </header>
 
             <main class="flex-1 overflow-y-auto pb-40 no-scrollbar p-6">
                 <div v-if="currentTab === 'schedule'" class="space-y-4">
-                    <div v-for="(item, index) in currentDayItems" :key="index" class="schedule-item">
-                        <div class="w-1 bg-theme-accent rounded-full mr-4"></div>
-                        <div class="flex-1">
-                            <span class="text-[10px] font-black text-theme-accent tracking-widest">{{ item.time }}</span>
-                            <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
-                        </div>
+                    <div v-for="item in currentDayItems" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main">
+                        <span class="text-xs font-bold text-theme-accent">{{ item.time }}</span>
+                        <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
                     </div>
-                    <div v-if="currentDayItems.length === 0" class="text-center py-24 text-gray-300 text-sm">尚無行程</div>
+                    <div v-if="currentDayItems.length === 0" class="text-center py-20 text-gray-300 text-sm italic">尚無行程</div>
                 </div>
             </main>
 
@@ -84,16 +65,13 @@
 
             <nav class="nav-bar-container">
                 <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'nav-item-active':'nav-item-inactive'" class="nav-item">
-                    <i class="fas fa-map-location-dot"></i>
-                    <span>SCHEDULE</span>
+                    <i class="fas fa-map-location-dot"></i><span>SCHEDULE</span>
                 </button>
                 <button @click="currentTab='money'" :class="currentTab==='money'?'nav-item-active':'nav-item-inactive'" class="nav-item">
-                    <i class="fas fa-wallet"></i>
-                    <span>BUDGET</span>
+                    <i class="fas fa-wallet"></i><span>BUDGET</span>
                 </button>
                 <button @click="currentTab='memo'" :class="currentTab==='memo'?'nav-item-active':'nav-item-inactive'" class="nav-item">
-                    <i class="fas fa-note-sticky"></i>
-                    <span>MEMO</span>
+                    <i class="fas fa-note-sticky"></i><span>MEMO</span>
                 </button>
             </nav>
         </template>
@@ -103,24 +81,22 @@
                 <h2 class="text-center font-serif font-black text-2xl text-theme-main mb-8 uppercase tracking-widest">New Event</h2>
                 <div class="space-y-6">
                     <div class="space-y-2">
-                        <label class="modal-label uppercase tracking-widest">Title</label>
+                        <label class="modal-label">TITLE</label>
                         <div class="relative"><input v-model="newItem.title" class="modal-input" placeholder="景點名稱"><i class="fas fa-search absolute right-5 top-1/2 -translate-y-1/2 text-gray-300"></i></div>
                     </div>
                     <div class="space-y-2 text-center">
-                        <label class="modal-label uppercase tracking-widest">Time</label>
+                        <label class="modal-label">TIME</label>
                         <div class="flex items-center justify-center gap-4 bg-[#F2F4F4] py-3 rounded-2xl">
-                            <input v-model="newItem.timeHour" class="time-field" placeholder="09">
-                            <span class="text-gray-400 font-bold">:</span>
-                            <input v-model="newItem.timeMinute" class="time-field" placeholder="00">
+                            <input v-model="newItem.timeHour" class="time-field" maxlength="2"><span>:</span><input v-model="newItem.timeMinute" class="time-field" maxlength="2">
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <label class="modal-label uppercase tracking-widest">Link / Address</label>
+                        <label class="modal-label text-center block">LINK / ADDRESS</label>
                         <input v-model="newItem.address" class="modal-input" placeholder="地址或網址">
                     </div>
-                    <div class="space-y-2">
-                        <label class="modal-label uppercase tracking-widest">Note</label>
-                        <textarea v-model="newItem.note" class="modal-input h-24" placeholder="備註..."></textarea>
+                    <div class="space-y-2 text-center">
+                        <label class="modal-label block">NOTE</label>
+                        <textarea v-model="newItem.note" class="modal-input h-24 resize-none" placeholder="寫下備註..."></textarea>
                     </div>
                     <button @click="addItem" class="save-event-btn">SAVE EVENT</button>
                 </div>
@@ -129,16 +105,15 @@
 
         <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
             <div class="modal-card">
-                <h3 class="text-center font-serif font-bold mb-6 text-xl">Settings</h3>
+                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">Settings</h3>
                 <div class="space-y-4">
+                    <input v-model="ghToken" type="password" class="modal-input" placeholder="GitHub Token">
+                    <input v-model="ghRepo" class="modal-input" placeholder="帳號/專案名稱">
                     <input v-model="destination" class="modal-input text-center font-bold" placeholder="目的地">
-                    <input v-model="startDate" type="date" class="modal-input">
-                    <button @click="saveToGitHub" class="save-event-btn">UPDATE DATA</button>
-                    <button @click="logout" class="w-full py-2 text-red-500 font-bold text-xs bg-red-50 rounded-2xl">LOGOUT</button>
+                    <button @click="saveSettings" class="save-event-btn">儲存並同步</button>
                 </div>
             </div>
         </div>
-
     </div>
 </div>
 <script type="module" src="app.js"></script>

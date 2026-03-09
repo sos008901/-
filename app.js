@@ -6,15 +6,27 @@ createApp({
         const currentDayIndex = ref(0);
         const days = ref([{ items: [] }]);
         const destination = ref('');
+        
+        // GitHub 設定
         const ghToken = ref(localStorage.getItem('gh_token') || '');
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
+        
+        // UI 狀態
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
+        const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
+        
+        // 新增行程暫存
+        const newItem = ref({ time: '', title: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
+        
+        const showToast = (msg) => { 
+            toast.value = { show: true, message: msg }; 
+            setTimeout(() => toast.value.show = false, 2500); 
+        };
 
         // --- GitHub API 核心 ---
         const loadFromGitHub = async () => {
@@ -29,30 +41,48 @@ createApp({
                     dataSha.value = data.sha;
                     const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     days.value = content.days || [{ items: [] }];
-                    destination.value = content.destination || '未命名旅程';
-                    showToast("已從 GitHub 更新資料");
+                    destination.value = content.destination || '我的旅程';
+                    showToast("已從雲端同步");
+                } else {
+                    // 若檔案不存在，初始化一個
+                    days.value = [{ items: [] }];
                 }
-            } catch (e) { showToast("讀取失敗"); }
+            } catch (e) { 
+                showToast("讀取失敗，請檢查設定"); 
+            }
             isSyncing.value = false;
         };
 
         const saveToGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
-            const contentObj = { days: days.value, destination: destination.value, updatedAt: new Date().toISOString() };
+            const contentObj = { 
+                days: days.value, 
+                destination: destination.value, 
+                updatedAt: new Date().toISOString() 
+            };
             const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
             try {
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
                     method: 'PUT',
-                    headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value })
+                    headers: { 
+                        'Authorization': `token ${ghToken.value}`, 
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({ 
+                        message: "Sync from App", 
+                        content: contentBase64, 
+                        sha: dataSha.value 
+                    })
                 });
                 if (res.ok) {
                     const resData = await res.json();
-                    dataSha.value = resData.content.sha;
+                    dataSha.value = resData.content.sha; // 更新 SHA 以供下次儲存
                     showToast("同步成功！");
                 }
-            } catch (e) { showToast("連線 GitHub 失敗"); }
+            } catch (e) { 
+                showToast("同步失敗，請檢查網路"); 
+            }
             isSyncing.value = false;
         };
 
@@ -63,13 +93,36 @@ createApp({
             loadFromGitHub();
         };
 
+        const addItem = () => {
+            if (!newItem.value.title) {
+                showToast("請輸入行程名稱");
+                return;
+            }
+            // 確保該天數的結構存在
+            if (!days.value[currentDayIndex.value]) {
+                days.value[currentDayIndex.value] = { items: [] };
+            }
+            // 加入資料
+            days.value[currentDayIndex.value].items.push({ ...newItem.value });
+            // 重置
+            newItem.value = { time: '', title: '' };
+            showAddModal.value = false;
+            // 儲存
+            saveToGitHub();
+        };
+
         onMounted(loadFromGitHub);
 
         return {
             currentTab, currentDayIndex, days, currentDayItems, destination,
-            ghToken, ghRepo, isSyncing, showSettingsModal, toast,
-            saveSettings, onFabClick: () => showToast("點擊新增"),
-            closeAllModals: () => showSettingsModal.value = false
+            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast,
+            newItem, addItem,
+            saveSettings, 
+            onFabClick: () => showAddModal.value = true,
+            closeAllModals: () => {
+                showSettingsModal.value = false;
+                showAddModal.value = false;
+            }
         };
     }
 }).mount('#app');

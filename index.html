@@ -12,125 +12,127 @@
 </head>
 <body>
 <div id="app" v-cloak>
-    <div id="app-container" class="bg-washi relative w-full h-full">
+    <div id="app-container" class="bg-washi relative w-full h-full flex flex-col">
         
         <div class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
             <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-github'"></i>
-            <span>{{ isSyncing ? '同步中...' : (ghToken ? 'GitHub 已連線' : '等待設定') }}</span>
+            <span>{{ isSyncing ? '同步中' : '已同步' }}</span>
         </div>
 
-        <transition name="fade">
-            <div v-if="toast.show" class="toast-box">{{ toast.message }}</div>
-        </transition>
+        <transition name="fade"><div v-if="toast.show" class="toast-box">{{ toast.message }}</div></transition>
 
         <template v-if="!isInitialized">
-            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8 overflow-y-auto">
-                <h1 class="text-7xl font-serif mb-2 tracking-widest">栞</h1>
-                <p class="text-[10px] text-theme-accent mb-8 tracking-[0.2em] uppercase">Travel Assistant</p>
-                
+            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8">
+                <h1 class="text-7xl font-serif mb-10 tracking-widest">栞</h1>
                 <div class="w-full max-w-xs space-y-4">
-                    <div class="space-y-1">
-                        <label class="text-[10px] text-gray-500 ml-2 uppercase">GitHub Token</label>
-                        <input v-model="ghToken" type="password" class="login-input" placeholder="ghp_xxxxxxxx">
+                    <input v-model="ghToken" type="password" class="login-input" placeholder="GitHub Token">
+                    <input v-model="ghRepo" class="login-input" placeholder="帳號/專案名稱">
+                    <div class="grid grid-cols-2 gap-2">
+                        <input v-model="destination" class="login-input" placeholder="目的地">
+                        <input v-model="startDate" type="date" class="login-input">
                     </div>
-                    <div class="space-y-1">
-                        <label class="text-[10px] text-gray-500 ml-2 uppercase">Repository</label>
-                        <input v-model="ghRepo" class="login-input" placeholder="帳號/專案名稱">
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-gray-500 ml-2">旅程目的地</label>
-                            <input v-model="destination" class="login-input" placeholder="例如：京都">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[10px] text-gray-500 ml-2">起始日期</label>
-                            <input v-model="startDate" type="date" class="login-input text-xs">
-                        </div>
-                    </div>
-
-                    <button @click="saveSettings" class="w-full py-4 mt-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
-                        開始這段旅程
-                    </button>
+                    <button @click="saveSettings" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl">進入旅程</button>
                 </div>
             </div>
         </template>
 
         <template v-else>
-            <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-5 z-40 flex justify-between items-end h-[calc(140px+env(safe-area-inset-top))]">
-                <div class="border-l-2 border-theme-accent pl-3">
-                    <div class="flex items-center gap-2 mb-1">
-                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Destination</p>
-                        <span v-if="startDate" class="text-[10px] text-theme-accent font-bold tracking-tighter">{{ startDate }}</span>
+            <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-4">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <p class="text-[10px] text-theme-accent font-bold tracking-widest">{{ startDate || '未設定日期' }}</p>
+                        <h1 class="text-3xl font-serif font-medium text-theme-main">{{ destination || '旅程' }}</h1>
                     </div>
-                    <h1 class="text-3xl font-serif font-medium tracking-widest text-theme-main">{{ destination || '未命名旅程' }}</h1>
+                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-100 flex items-center justify-center text-theme-sub"><i class="fas fa-cog"></i></button>
                 </div>
-                <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub shadow-sm active:bg-gray-100 transition-colors">
-                    <i class="fas fa-cog"></i>
-                </button>
+
+                <div v-if="currentTab === 'schedule'" class="flex gap-3 mt-6 overflow-x-auto no-scrollbar pb-2">
+                    <button v-for="(day, index) in days" :key="index" 
+                            @click="currentDayIndex = index"
+                            :class="currentDayIndex === index ? 'bg-theme-main text-white' : 'bg-white text-gray-400 border border-gray-100'"
+                            class="flex-shrink-0 w-14 h-16 rounded-2xl flex flex-col items-center justify-center transition-all">
+                        <span class="text-[10px] opacity-70">{{ getDayInfo(index).week }}</span>
+                        <span class="text-sm font-bold">{{ getDayInfo(index).date }}</span>
+                    </button>
+                    <button @click="addNewDay" class="flex-shrink-0 w-14 h-16 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 flex items-center justify-center">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto pb-40 no-scrollbar">
-                <div v-if="currentTab === 'schedule'" class="p-5">
-                    <div v-for="(item, index) in currentDayItems" :key="index" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main mb-4">
+            <main class="flex-1 overflow-y-auto pb-40 no-scrollbar p-5">
+                <div v-if="currentTab === 'schedule'" class="space-y-4">
+                    <div v-for="(item, index) in currentDayItems" :key="index" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main">
                         <span class="text-xs font-bold text-theme-accent">{{ item.time }}</span>
-                        <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
+                        <h3 class="text-lg font-serif font-bold">{{ item.title }}</h3>
                     </div>
-                    <div v-if="currentDayItems.length === 0" class="text-center py-24 text-gray-400">
-                        <i class="fas fa-feather-alt mb-3 text-2xl"></i><br>
-                        <p class="text-sm">這天還沒有行程<br>點擊「+」開始記錄</p>
-                    </div>
+                    <div v-if="currentDayItems.length === 0" class="text-center py-20 text-gray-300 text-sm">點擊「+」新增 Day {{currentDayIndex+1}} 的行程</div>
                 </div>
-                
-                <div v-if="currentTab === 'money'" class="p-20 text-center text-gray-300 italic">記帳功能開發中</div>
-                <div v-if="currentTab === 'memo'" class="p-20 text-center text-gray-300 italic">備忘錄開發中</div>
+
+                <div v-if="currentTab === 'money'" class="space-y-3">
+                    <div v-for="exp in expenses" :key="exp.id" class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
+                        <span class="font-bold text-theme-main">{{ exp.item }}</span>
+                        <span class="font-serif text-theme-accent font-black">$ {{ exp.amount }}</span>
+                    </div>
+                    <div v-if="expenses.length === 0" class="text-center py-20 text-gray-300 text-sm">目前沒有支出紀錄</div>
+                </div>
+
+                <div v-if="currentTab === 'memo'" class="space-y-4">
+                    <div v-for="memo in memos" :key="memo.id" class="bg-[#FFFCEB] p-5 rounded-xl shadow-sm border-b-2 border-yellow-100 text-sm leading-relaxed">
+                        {{ memo.content }}
+                    </div>
+                    <div v-if="memos.length === 0" class="text-center py-20 text-gray-300 text-sm">寫下一些旅行筆記吧</div>
+                </div>
             </main>
 
-            <button @click="onFabClick" class="fab-btn shadow-2xl active:scale-90 transition-transform">
-                <i class="fas fa-plus"></i>
-            </button>
+            <button @click="onFabClick" class="fab-btn shadow-xl"><i class="fas fa-plus"></i></button>
 
-            <nav class="glass-panel absolute bottom-0 w-full h-[80px] flex justify-around items-center border-t border-gray-100">
+            <nav class="glass-panel h-[80px] flex justify-around items-center border-t border-gray-100">
                 <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'text-theme-accent':'text-theme-sub'"><i class="fas fa-map-marked-alt text-xl"></i></button>
                 <button @click="currentTab='money'" :class="currentTab==='money'?'text-theme-accent':'text-theme-sub'"><i class="fas fa-wallet text-xl"></i></button>
                 <button @click="currentTab='memo'" :class="currentTab==='memo'?'text-theme-accent':'text-theme-sub'"><i class="fas fa-book text-xl"></i></button>
             </nav>
         </template>
 
-        <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
+        <div v-if="showAddModal" class="modal-mask" @click.self="showAddModal = false">
             <div class="modal-card">
-                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">旅程管理</h3>
+                <h3 class="text-center font-serif font-bold mb-6 border-b pb-4">新增 Day {{currentDayIndex+1}} 行程</h3>
                 <div class="space-y-4">
-                    <div>
-                        <label class="input-label">目的地</label>
-                        <input v-model="destination" class="input-rounded text-center font-bold">
-                    </div>
-                    <div>
-                        <label class="input-label">起始日期</label>
-                        <input v-model="startDate" type="date" class="input-rounded text-center">
-                    </div>
-                    <div class="pt-6 space-y-3">
-                        <button @click="saveToGitHub" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl shadow-md">儲存並同步雲端</button>
-                        <div class="flex gap-2">
-                            <button @click="clearJourney" class="flex-1 py-3 bg-orange-50 text-orange-600 font-bold rounded-2xl text-xs">清空行程</button>
-                            <button @click="logout" class="flex-1 py-3 bg-red-50 text-red-500 font-bold rounded-2xl text-xs">登出重置</button>
-                        </div>
-                    </div>
+                    <input v-model="newItem.time" class="input-rounded" placeholder="時間 (如 10:00)">
+                    <input v-model="newItem.title" class="input-rounded" placeholder="景點名稱">
+                    <button @click="addItem" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl">確認新增</button>
                 </div>
             </div>
         </div>
 
-        <div v-if="showAddModal" class="modal-mask" @click.self="showAddModal = false">
+        <div v-if="showMoneyModal" class="modal-mask" @click.self="showMoneyModal = false">
             <div class="modal-card">
-                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">新增景點</h3>
-                <div class="space-y-6">
-                    <div><label class="input-label">預計時間</label><input v-model="newItem.time" class="input-rounded" placeholder="例如 14:00"></div>
-                    <div><label class="input-label">景點名稱</label><input v-model="newItem.title" class="input-rounded" placeholder="想去哪裡？"></div>
-                    <div class="flex gap-3">
-                        <button @click="showAddModal = false" class="flex-1 py-4 bg-gray-100 text-gray-500 font-bold rounded-3xl">取消</button>
-                        <button @click="addItem" class="flex-2 py-4 bg-theme-main text-white font-bold rounded-3xl px-8">確認新增</button>
-                    </div>
+                <h3 class="text-center font-serif font-bold mb-6 border-b pb-4">新增支出</h3>
+                <div class="space-y-4">
+                    <input v-model="newExpense.item" class="input-rounded" placeholder="消費項目">
+                    <input v-model="newExpense.amount" type="number" class="input-rounded" placeholder="金額">
+                    <button @click="addExpense" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl">紀錄支出</button>
                 </div>
+            </div>
+        </div>
+
+        <div v-if="showMemoModal" class="modal-mask" @click.self="showMemoModal = false">
+            <div class="modal-card">
+                <h3 class="text-center font-serif font-bold mb-6 border-b pb-4">新增備忘</h3>
+                <div class="space-y-4">
+                    <textarea v-model="newMemo.content" class="input-rounded h-32" placeholder="內容..."></textarea>
+                    <button @click="addMemo" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl">儲存筆記</button>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
+            <div class="modal-card space-y-4 text-center">
+                <h3 class="font-serif font-bold mb-4">設定</h3>
+                <input v-model="destination" class="input-rounded text-center" placeholder="目的地">
+                <input v-model="startDate" type="date" class="input-rounded">
+                <button @click="saveToGitHub" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl">儲存更改</button>
+                <button @click="logout" class="w-full py-2 text-red-400 text-xs">登出帳號</button>
             </div>
         </div>
 

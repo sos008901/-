@@ -1,41 +1,37 @@
 :root {
     --theme-main: #2C3032;
     --theme-accent: #C5A059;
-    --theme-sub: #8E9193;
 }
 
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { background-color: #F4F2EE; color: var(--theme-main); font-family: 'Noto Serif TC', serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+body { background-color: #F4F2EE; color: var(--theme-main); font-family: 'Noto Sans TC', sans-serif; overflow: hidden; }
 [v-cloak] { display: none !important; }
 
-#app-container { max-width: 480px; margin: 0 auto; background-color: #F4F2EE; height: 100dvh; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.1); }
+#app-container { max-width: 480px; margin: 0 auto; background-color: #F4F2EE; height: 100dvh; position: relative; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
-.glass-panel { background: rgba(244, 242, 238, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+.glass-panel { background: rgba(244, 242, 238, 0.98); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 
-/* 登入介面輸入框 */
-.login-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 0.8rem; border-radius: 0.8rem; color: white; outline: none; font-size: 13px; transition: all 0.3s; }
-.login-input:focus { background: rgba(255,255,255,0.1); border-color: var(--theme-accent); }
-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); } /* 讓日期選取器的圖示在黑底變白色 */
+/* 日期卡片樣式 */
+.day-card-active { background-color: var(--theme-main); color: white; border-color: var(--theme-main); transform: scale(1.05); }
+.day-card-inactive { background-color: white; color: #999; border-color: #eee; }
 
-/* 一般輸入框 */
-.input-rounded { width: 100%; background-color: #F2F4F4; border: 1px solid transparent; padding: 1rem; border-radius: 1.5rem; outline: none; transition: all 0.3s; font-family: 'Noto Sans TC', sans-serif; }
-.input-rounded:focus { background-color: #FFFFFF; border-color: var(--theme-accent); }
-.input-label { font-size: 10px; font-family: 'Cinzel', serif; color: #888888; margin-bottom: 0.6rem; margin-left: 0.8rem; text-transform: uppercase; font-weight: 700; display: block; }
+/* 天數控制按鈕 */
+.day-ctrl-btn { font-size: 10px; font-weight: 900; color: var(--theme-main); padding: 5px 12px; border: 1.5px solid var(--theme-main); border-radius: 10px; }
 
-/* 彈窗樣式 */
-.modal-mask { position: fixed; inset: 0; background: rgba(44, 48, 50, 0.5); backdrop-filter: blur(8px); z-index: 1000; display: flex; items: center; justify-content: center; padding: 1.5rem; }
-.modal-card { background: #FCFCFA; width: 100%; max-width: 22rem; border-radius: 2.5rem; padding: 2.5rem 2rem; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.25); max-height: 85vh; overflow-y: auto; }
+/* 行程項目樣式 */
+.schedule-item { background: white; padding: 1.2rem; border-radius: 1.5rem; display: flex; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
 
-/* FAB 按鈕 */
-.fab-btn { position: absolute; bottom: 100px; right: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 9999px; background-color: var(--theme-main); color: var(--theme-accent); display: flex; align-items: center; justify-content: center; z-index: 900; border: none; font-size: 1.2rem; cursor: pointer; }
-.toast-box { position: fixed; top: 2rem; left: 50%; transform: translateX(-50%); background: var(--theme-main); color: var(--theme-accent); padding: 0.8rem 1.5rem; border-radius: 2rem; font-size: 12px; font-weight: bold; z-index: 2000; pointer-events: none; }
-
-.no-scrollbar::-webkit-scrollbar { display: none; }
+/* 導覽按鈕 */
 .text-theme-accent { color: var(--theme-accent); }
-.text-theme-main { color: var(--theme-main); }
-.bg-theme-main { background-color: var(--theme-main); }
-.bg-theme-accent { background-color: var(--theme-accent); }
+.fab-btn { position: absolute; bottom: 120px; right: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 1.8rem; background-color: var(--theme-main); color: var(--theme-accent); display: flex; align-items: center; justify-content: center; z-index: 900; font-size: 1.5rem; box-shadow: 0 10px 20px rgba(0,0,0,0.15); }
 
-/* 動畫 */
-.fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+/* 隱藏捲動條但保留功能 */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* 其他彈窗基礎樣式 */
+.login-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 1rem; color: white; outline: none; }
+.input-rounded { width: 100%; background-color: #F8F9F9; border: none; padding: 1rem; border-radius: 1.2rem; outline: none; }
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(8px); z-index: 1000; display: flex; items: center; justify-content: center; padding: 2rem; }
+.modal-card { background: white; width: 100%; border-radius: 2.5rem; padding: 2.5rem; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+.toast-box { position: fixed; top: 2rem; left: 50%; transform: translateX(-50%); background: var(--theme-main); color: var(--theme-accent); padding: 0.8rem 1.5rem; border-radius: 2rem; font-size: 12px; font-weight: 900; z-index: 2000; }

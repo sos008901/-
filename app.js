@@ -19,15 +19,11 @@ createApp({
         const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
-        // 精緻版資料結構
+        // 截圖要求的進階資料結構
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        
-        const showToast = (msg) => { 
-            toast.value = { show: true, message: msg }; 
-            setTimeout(() => toast.value.show = false, 2500); 
-        };
+        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
 
         const scrollToActive = () => {
             nextTick(() => {
@@ -38,18 +34,6 @@ createApp({
                     container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                 }
             });
-        };
-
-        const selectDay = (index) => {
-            currentDayIndex.value = index;
-            scrollToActive();
-        };
-
-        const getDayInfo = (index) => {
-            if (!startDate.value) return { date: '-' };
-            const date = new Date(startDate.value);
-            date.setDate(date.getDate() + index);
-            return { date: `${date.getMonth() + 1}/${date.getDate()}` };
         };
 
         const loadFromGitHub = async () => {
@@ -83,28 +67,30 @@ createApp({
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Journey Sync", content: contentBase64, sha: dataSha.value })
+                    body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value })
                 });
                 if (res.ok) {
                     const resData = await res.json();
                     dataSha.value = resData.content.sha;
                     showToast("同步成功");
                 }
-            } catch (e) { showToast("連線失敗"); }
+            } catch (e) { showToast("同步失敗"); }
             isSyncing.value = false;
         };
 
-        const saveSettings = async () => {
-            if (!ghToken.value || !ghRepo.value) return showToast("請完整填寫");
-            localStorage.setItem('gh_token', ghToken.value);
-            localStorage.setItem('gh_repo', ghRepo.value);
-            isInitialized.value = true;
-            showSettingsModal.value = false;
-            await loadFromGitHub();
-            if (!dataSha.value) saveToGitHub();
+        const addItem = () => {
+            if (!newItem.value.title) return;
+            days.value[currentDayIndex.value].items.push({
+                time: `${newItem.value.hour}:${newItem.value.minute}`,
+                title: newItem.value.title,
+                address: newItem.value.address,
+                note: newItem.value.note
+            });
+            newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' };
+            showAddModal.value = false;
+            saveToGitHub();
         };
 
-        // --- 天數操作 ---
         const addNewDay = () => {
             days.value.push({ items: [] });
             currentDayIndex.value = days.value.length - 1;
@@ -125,24 +111,11 @@ createApp({
 
         const deleteDay = (index) => {
             if (days.value.length <= 1) return showToast("需保留一天");
-            if (confirm("確定刪除此天行程？")) {
+            if (confirm("確定刪除此天？")) {
                 days.value.splice(index, 1);
                 currentDayIndex.value = 0;
                 saveToGitHub();
             }
-        };
-
-        const addItem = () => {
-            if (!newItem.value.title) return;
-            days.value[currentDayIndex.value].items.push({
-                time: `${newItem.value.hour}:${newItem.value.minute}`,
-                title: newItem.value.title,
-                address: newItem.value.address,
-                note: newItem.value.note
-            });
-            newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' };
-            showAddModal.value = false;
-            saveToGitHub();
         };
 
         onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
@@ -150,7 +123,21 @@ createApp({
         return {
             isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,
             ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem,
-            saveSettings, addItem, addNewDay, getDayInfo, selectDay, moveDay, deleteDay, saveToGitHub,
+            saveSettings: async () => {
+                localStorage.setItem('gh_token', ghToken.value);
+                localStorage.setItem('gh_repo', ghRepo.value);
+                isInitialized.value = true;
+                showSettingsModal.value = false;
+                await loadFromGitHub();
+                if (!dataSha.value) saveToGitHub();
+            },
+            addItem, addNewDay, moveDay, deleteDay, selectDay: (i) => { currentDayIndex.value = i; scrollToActive(); },
+            getDayInfo: (i) => {
+                if (!startDate.value) return { date: '-' };
+                const d = new Date(startDate.value);
+                d.setDate(d.getDate() + i);
+                return { date: `${d.getMonth() + 1}/${d.getDate()}` };
+            },
             onFabClick: () => showAddModal.value = true,
             logout: () => { localStorage.clear(); location.reload(); }
         };

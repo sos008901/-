@@ -24,24 +24,30 @@
         </transition>
 
         <template v-if="!isInitialized">
-            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8">
+            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8 overflow-y-auto">
                 <h1 class="text-7xl font-serif mb-2 tracking-widest">栞</h1>
-                <p class="text-[10px] text-theme-accent mb-10 tracking-[0.2em] uppercase">Travel Assistant</p>
+                <p class="text-[10px] text-theme-accent mb-8 tracking-[0.2em] uppercase">Start Your Journey</p>
                 
                 <div class="w-full max-w-xs space-y-4">
                     <div class="space-y-1">
                         <label class="text-[10px] text-gray-500 ml-2">GitHub Token</label>
-                        <input v-model="ghToken" type="password" class="login-input" placeholder="貼上你的 Token">
+                        <input v-model="ghToken" type="password" class="login-input" placeholder="貼上 ghp_ 開頭的字串">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[10px] text-gray-500 ml-2">Repository</label>
-                        <input v-model="ghRepo" class="login-input" placeholder="帳號/專案名稱">
+                        <label class="text-[10px] text-gray-500 ml-2">Repository (帳號/專案)</label>
+                        <input v-model="ghRepo" class="login-input" placeholder="username/travel-data">
                     </div>
-                    <div class="space-y-1 pb-4">
-                        <label class="text-[10px] text-gray-500 ml-2">旅程目的地</label>
-                        <input v-model="destination" class="login-input text-center" placeholder="要去哪裡旅行？">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] text-gray-500 ml-2">目的地</label>
+                            <input v-model="destination" class="login-input" placeholder="去哪裡？">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] text-gray-500 ml-2">起始日期</label>
+                            <input v-model="startDate" type="date" class="login-input text-sm">
+                        </div>
                     </div>
-                    <button @click="saveSettings" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
+                    <button @click="saveSettings" class="w-full py-4 mt-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
                         進入旅程
                     </button>
                 </div>
@@ -51,8 +57,11 @@
         <template v-else>
             <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-5 z-40 flex justify-between items-end h-[calc(140px+env(safe-area-inset-top))]">
                 <div class="border-l-2 border-theme-accent pl-3">
-                    <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Destination</p>
-                    <h1 class="text-3xl font-serif font-medium tracking-widest text-theme-main">{{ destination || '新旅程' }}</h1>
+                    <div class="flex items-center gap-2 mb-1">
+                        <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Destination</p>
+                        <span class="text-[10px] text-theme-accent font-bold">{{ startDate }}</span>
+                    </div>
+                    <h1 class="text-3xl font-serif font-medium tracking-widest text-theme-main">{{ destination || '未命名旅程' }}</h1>
                 </div>
                 <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub shadow-sm">
                     <i class="fas fa-cog"></i>
@@ -67,9 +76,8 @@
                             <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
                         </div>
                     </div>
-                    <div v-if="currentDayItems.length === 0" class="text-center py-24">
-                        <i class="fas fa-map-pin text-gray-200 text-3xl mb-4"></i>
-                        <p class="text-gray-400 text-sm">點擊下方「+」<br>開始記錄行程</p>
+                    <div v-if="currentDayItems.length === 0" class="text-center py-24 text-gray-400">
+                        目前沒有行程，點擊「+」新增
                     </div>
                 </div>
                 <div v-if="currentTab === 'money'" class="p-10 text-center text-gray-400">記帳功能開發中</div>
@@ -89,19 +97,22 @@
 
         <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
             <div class="modal-card">
-                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4 text-theme-main">旅程管理</h3>
+                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">旅程設定</h3>
                 <div class="space-y-4">
                     <div>
                         <label class="input-label">旅程目的地</label>
                         <input v-model="destination" class="input-rounded text-center font-bold">
                     </div>
+                    <div>
+                        <label class="input-label">起始日期</label>
+                        <input v-model="startDate" type="date" class="input-rounded text-center">
+                    </div>
                     <div class="pt-6 space-y-3">
-                        <button @click="saveToGitHub" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl shadow-sm">儲存目的地修改</button>
+                        <button @click="saveToGitHub" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl shadow-sm">更新雲端資料</button>
                         <div class="flex gap-2">
                             <button @click="clearJourney" class="flex-1 py-3 bg-orange-50 text-orange-600 font-bold rounded-2xl text-xs">清空行程</button>
-                            <button @click="logout" class="flex-1 py-3 bg-red-50 text-red-500 font-bold rounded-2xl text-xs">登出帳號</button>
+                            <button @click="logout" class="flex-1 py-3 bg-red-50 text-red-500 font-bold rounded-2xl text-xs">登出重置</button>
                         </div>
-                        <button @click="showSettingsModal = false" class="w-full py-2 text-gray-400 text-xs">關閉</button>
                     </div>
                 </div>
             </div>
@@ -111,7 +122,7 @@
             <div class="modal-card">
                 <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">新增行程</h3>
                 <div class="space-y-6">
-                    <div><label class="input-label">預計時間</label><input v-model="newItem.time" class="input-rounded" placeholder="10:30"></div>
+                    <div><label class="input-label">預計時間</label><input v-model="newItem.time" class="input-rounded" placeholder="例如 10:30"></div>
                     <div><label class="input-label">行程內容</label><input v-model="newItem.title" class="input-rounded" placeholder="景點名稱"></div>
                     <div class="flex gap-3">
                         <button @click="showAddModal = false" class="flex-1 py-4 bg-gray-100 text-gray-500 font-bold rounded-3xl">取消</button>
@@ -120,6 +131,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 <script type="module" src="app.js"></script>

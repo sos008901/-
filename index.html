@@ -13,9 +13,10 @@
 <body>
 <div id="app" v-cloak>
     <div id="app-container" class="bg-washi relative w-full h-full">
+        
         <div class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
             <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-github'"></i>
-            <span>{{ isSyncing ? '同步中...' : (ghToken ? 'GitHub 已連線' : '請設定 Token') }}</span>
+            <span>{{ isSyncing ? '同步中...' : (ghToken ? 'GitHub 已連線' : '等待設定') }}</span>
         </div>
 
         <transition name="fade">
@@ -23,10 +24,28 @@
         </transition>
 
         <template v-if="!ghToken || !ghRepo">
-            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-6 text-center">
-                <h1 class="text-7xl font-serif mb-6 tracking-widest">栞</h1>
-                <p class="text-xs text-theme-accent mb-10">請先設定 GitHub API 以啟用同步</p>
-                <button @click="showSettingsModal = true" class="px-8 py-4 bg-theme-accent text-theme-main font-bold rounded-xl">前往設定</button>
+            <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8">
+                <h1 class="text-7xl font-serif mb-2 tracking-widest">栞</h1>
+                <p class="text-[10px] text-theme-accent mb-10 tracking-[0.2em] uppercase">Start Your Journey</p>
+                
+                <div class="w-full max-w-xs space-y-4">
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 ml-2">GITHUB TOKEN</label>
+                        <input v-model="ghToken" type="password" class="login-input" placeholder="ghp_xxxxxxxx">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 ml-2">REPOSITORY (帳號/專案)</label>
+                        <input v-model="ghRepo" class="login-input" placeholder="username/travel-data">
+                    </div>
+                    <div class="space-y-1 pb-4">
+                        <label class="text-[10px] text-gray-500 ml-2">第一站去哪裡？</label>
+                        <input v-model="destination" class="login-input text-center" placeholder="例如：東京五天四夜">
+                    </div>
+                    <button @click="saveSettings" class="w-full py-4 bg-theme-accent text-theme-main font-bold rounded-xl shadow-lg active:scale-95 transition-transform">
+                        開始這段旅程
+                    </button>
+                    <p class="text-[10px] text-gray-500 text-center mt-4">資料將同步儲存至您的 GitHub</p>
+                </div>
             </div>
         </template>
 
@@ -34,19 +53,24 @@
             <header class="glass-panel pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-5 z-40 flex justify-between items-end h-[calc(140px+env(safe-area-inset-top))]">
                 <div class="border-l-2 border-theme-accent pl-3">
                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Destination</p>
-                    <h1 class="text-4xl font-serif font-medium tracking-widest text-theme-main">{{ destination }}</h1>
+                    <h1 class="text-3xl font-serif font-medium tracking-widest text-theme-main">{{ destination || '未命名旅程' }}</h1>
                 </div>
-                <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub"><i class="fas fa-cog"></i></button>
+                <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub shadow-sm">
+                    <i class="fas fa-cog"></i>
+                </button>
             </header>
 
             <main class="flex-1 overflow-y-auto pb-40 no-scrollbar">
                 <div v-if="currentTab === 'schedule'" class="p-5">
-                    <div v-for="(item, index) in currentDayItems" :key="index" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main mb-4">
-                        <span class="text-xs font-bold text-theme-accent">{{ item.time }}</span>
-                        <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
+                    <div v-for="(item, index) in currentDayItems" :key="index" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main mb-4 flex justify-between items-center group">
+                        <div>
+                            <span class="text-xs font-bold text-theme-accent">{{ item.time }}</span>
+                            <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
+                        </div>
                     </div>
-                    <div v-if="currentDayItems.length === 0" class="text-center py-20 text-gray-400 text-sm">
-                        目前沒有行程<br>點擊下方「+」開始新增
+                    <div v-if="currentDayItems.length === 0" class="text-center py-24">
+                        <i class="fas fa-map-pin text-gray-200 text-3xl mb-4"></i>
+                        <p class="text-gray-400 text-sm">點擊右下角「+」<br>新增你的第一個行程</p>
                     </div>
                 </div>
 
@@ -54,7 +78,7 @@
                 <div v-if="currentTab === 'memo'" class="p-10 text-center text-gray-400">備忘錄開發中</div>
             </main>
 
-            <button @click="onFabClick" class="fab-btn shadow-xl">
+            <button @click="onFabClick" class="fab-btn shadow-2xl active:scale-90 transition-transform">
                 <i class="fas fa-plus"></i>
             </button>
 
@@ -67,21 +91,21 @@
 
         <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
             <div class="modal-card">
-                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">GitHub 同步設定</h3>
-                <div class="space-y-6">
-                    <div>
-                        <label class="input-label">GitHub Token</label>
-                        <input v-model="ghToken" type="password" class="input-rounded" placeholder="ghp_xxx">
-                    </div>
-                    <div>
-                        <label class="input-label">Repository (帳號/名稱)</label>
-                        <input v-model="ghRepo" class="input-rounded" placeholder="sos008901/travel-diary">
-                    </div>
+                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">設定與同步</h3>
+                <div class="space-y-4">
                     <div>
                         <label class="input-label">目的地</label>
-                        <input v-model="destination" class="input-rounded text-center">
+                        <input v-model="destination" class="input-rounded text-center font-bold">
                     </div>
-                    <button @click="saveSettings" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl">儲存並同步</button>
+                    <div class="pt-4 border-t">
+                        <button @click="saveSettings" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl mb-3">儲存更改</button>
+                        
+                        <button @click="clearJourney" class="w-full py-3 bg-red-50 text-red-500 font-bold rounded-2xl text-sm">
+                            <i class="fas fa-trash-alt mr-2"></i>清除整趟旅程
+                        </button>
+                        
+                        <button @click="showSettingsModal = false" class="w-full py-3 text-gray-400 text-sm">關閉</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>栞 | Travel Assistant (GitHub 版)</title>
+    <title>栞 | Travel Assistant</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=Cinzel:wght@500;700&family=Noto+Sans+TC:wght@300;400;500&display=swap" rel="stylesheet">
@@ -36,23 +36,47 @@
                     <p class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-1">Destination</p>
                     <h1 class="text-4xl font-serif font-medium tracking-widest text-theme-main">{{ destination }}</h1>
                 </div>
-                <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub"><i class="fas fa-cog"></i></button>
+                <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-theme-sub">
+                    <i class="fas fa-cog"></i>
+                </button>
             </header>
 
             <main class="flex-1 overflow-y-auto pb-40 no-scrollbar">
                 <div v-if="currentTab === 'schedule'" class="p-5">
-                    <div v-for="item in currentDayItems" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main mb-4">
+                    <div v-for="(item, index) in currentDayItems" :key="index" class="bg-white p-5 rounded-3xl shadow-sm border-l-4 border-theme-main mb-4">
                         <span class="text-xs font-bold text-theme-accent">{{ item.time }}</span>
                         <h3 class="text-lg font-serif font-bold text-theme-main">{{ item.title }}</h3>
                     </div>
+                    <div v-if="currentDayItems.length === 0" class="text-center py-20 text-gray-400 text-sm">
+                        目前沒有行程<br>點擊下方「+」開始新增
+                    </div>
+                </div>
+
+                <div v-if="currentTab === 'money'" class="p-10 text-center">
+                    <i class="fas fa-wallet text-4xl text-gray-200 mb-4"></i>
+                    <p class="text-gray-400">記帳功能開發中</p>
+                </div>
+
+                <div v-if="currentTab === 'memo'" class="p-10 text-center">
+                    <i class="fas fa-book text-4xl text-gray-200 mb-4"></i>
+                    <p class="text-gray-400">備忘錄功能開發中</p>
                 </div>
             </main>
 
-            <button @click="onFabClick" class="fab-btn"><i class="fas fa-plus"></i></button>
-            <nav class="glass-panel absolute bottom-0 w-full h-[80px] flex justify-around items-center">
-                <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'text-theme-accent':'text-theme-sub'"><i class="fas fa-map-marked-alt text-xl"></i></button>
-                <button @click="currentTab='money'" :class="currentTab==='money'?'text-theme-accent':'text-theme-sub'"><i class="fas fa-wallet text-xl"></i></button>
-                <button @click="currentTab='memo'" :class="currentTab==='memo'?'text-theme-accent':'text-theme-sub'"><i class="fas fa-book text-xl"></i></button>
+            <button @click="onFabClick" class="fab-btn shadow-xl">
+                <i class="fas fa-plus"></i>
+            </button>
+
+            <nav class="glass-panel absolute bottom-0 w-full h-[80px] flex justify-around items-center border-t border-gray-100">
+                <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'text-theme-accent':'text-theme-sub'">
+                    <i class="fas fa-map-marked-alt text-xl"></i>
+                </button>
+                <button @click="currentTab='money'" :class="currentTab==='money'?'text-theme-accent':'text-theme-sub'">
+                    <i class="fas fa-wallet text-xl"></i>
+                </button>
+                <button @click="currentTab='memo'" :class="currentTab==='memo'?'text-theme-accent':'text-theme-sub'">
+                    <i class="fas fa-book text-xl"></i>
+                </button>
             </nav>
         </template>
 
@@ -60,13 +84,43 @@
             <div class="modal-card">
                 <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">GitHub 同步設定</h3>
                 <div class="space-y-6">
-                    <div><label class="input-label">GitHub Token</label><input v-model="ghToken" type="password" class="input-rounded" placeholder="ghp_xxx"></div>
-                    <div><label class="input-label">Repository (帳號/名稱)</label><input v-model="ghRepo" class="input-rounded" placeholder="sos008901/travel-diary"></div>
-                    <div><label class="input-label">目的地</label><input v-model="destination" class="input-rounded text-center"></div>
+                    <div>
+                        <label class="input-label">GitHub Token</label>
+                        <input v-model="ghToken" type="password" class="input-rounded" placeholder="ghp_xxx">
+                    </div>
+                    <div>
+                        <label class="input-label">Repository (帳號/專案名)</label>
+                        <input v-model="ghRepo" class="input-rounded" placeholder="username/repo">
+                    </div>
+                    <div>
+                        <label class="input-label">目的地名稱</label>
+                        <input v-model="destination" class="input-rounded text-center">
+                    </div>
                     <button @click="saveSettings" class="w-full py-4 bg-theme-main text-white font-bold rounded-3xl">儲存並同步</button>
                 </div>
             </div>
         </div>
+
+        <div v-if="showAddModal" class="modal-mask" @click.self="showAddModal = false">
+            <div class="modal-card">
+                <h3 class="text-center font-serif font-bold mb-6 text-lg border-b pb-4">新增行程</h3>
+                <div class="space-y-6">
+                    <div>
+                        <label class="input-label">預計時間</label>
+                        <input v-model="newItem.time" class="input-rounded" placeholder="例如 10:30">
+                    </div>
+                    <div>
+                        <label class="input-label">行程名稱</label>
+                        <input v-model="newItem.title" class="input-rounded" placeholder="要去哪裡？">
+                    </div>
+                    <div class="flex gap-3">
+                        <button @click="showAddModal = false" class="flex-1 py-4 bg-gray-100 text-gray-500 font-bold rounded-3xl">取消</button>
+                        <button @click="addItem" class="flex-2 py-4 bg-theme-main text-white font-bold rounded-3xl px-8">確認新增</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 <script type="module" src="app.js"></script>

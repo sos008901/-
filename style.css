@@ -5,14 +5,14 @@
 }
 
 * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-body { background-color: #F4F2EE; color: #2C3032; font-family: 'Noto Serif TC', serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
+body { background-color: #F4F2EE; color: var(--theme-main); font-family: 'Noto Serif TC', serif; -webkit-font-smoothing: antialiased; overflow: hidden; }
 [v-cloak] { display: none !important; }
 
 #app-container { max-width: 480px; margin: 0 auto; background-color: #F4F2EE; height: 100dvh; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.1); }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 .glass-panel { background: rgba(244, 242, 238, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 
-/* 登入輸入框 */
+/* 登入專用樣式 */
 .login-input { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 1rem; border-radius: 1rem; color: white; outline: none; font-size: 14px; transition: all 0.3s; }
 .login-input:focus { background: rgba(255,255,255,0.1); border-color: var(--theme-accent); }
 
@@ -21,7 +21,7 @@ body { background-color: #F4F2EE; color: #2C3032; font-family: 'Noto Serif TC', 
 .input-rounded:focus { background-color: #FFFFFF; border-color: var(--theme-accent); }
 .input-label { font-size: 10px; font-family: 'Cinzel', serif; letter-spacing: 0.15em; color: #888888; margin-bottom: 0.6rem; margin-left: 0.8rem; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
 
-/* 彈窗 */
+/* 彈窗樣式 */
 .modal-mask { position: fixed; inset: 0; background: rgba(44, 48, 50, 0.5); backdrop-filter: blur(8px); z-index: 1000; display: flex; items: center; justify-content: center; padding: 1.5rem; }
 .modal-card { background: #FCFCFA; width: 100%; max-width: 22rem; border-radius: 2.5rem; padding: 2.5rem 2rem; box-shadow: 0 30px 60px -12px rgba(0,0,0,0.25); max-height: 85vh; overflow-y: auto; }
 
@@ -30,5 +30,11 @@ body { background-color: #F4F2EE; color: #2C3032; font-family: 'Noto Serif TC', 
 .toast-box { position: fixed; top: 2rem; left: 50%; transform: translateX(-50%); background: var(--theme-main); color: var(--theme-accent); padding: 0.8rem 1.5rem; border-radius: 2rem; font-size: 12px; font-weight: bold; z-index: 2000; pointer-events: none; }
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
+.text-theme-accent { color: var(--theme-accent); }
+.text-theme-main { color: var(--theme-main); }
+.bg-theme-main { background-color: var(--theme-main); }
+.bg-theme-accent { background-color: var(--theme-accent); }
+
+/* 動畫 */
 .fade-enter-active, .fade-leave-active { transition: opacity 0.5s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }

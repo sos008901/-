@@ -15,13 +15,15 @@ createApp({
         // UI 狀態
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
-        const showAddModal = ref(false);
+        const showAddModal = ref(false); // 控制新增視窗
         const toast = ref({ show: false, message: '' });
         
         // 新增行程暫存
         const newItem = ref({ time: '', title: '' });
 
-        const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
+        const currentDayItems = computed(() => {
+            return days.value[currentDayIndex.value]?.items || [];
+        });
         
         const showToast = (msg) => { 
             toast.value = { show: true, message: msg }; 
@@ -44,7 +46,6 @@ createApp({
                     destination.value = content.destination || '我的旅程';
                     showToast("已從雲端同步");
                 } else {
-                    // 若檔案不存在，初始化一個
                     days.value = [{ items: [] }];
                 }
             } catch (e) { 
@@ -77,11 +78,11 @@ createApp({
                 });
                 if (res.ok) {
                     const resData = await res.json();
-                    dataSha.value = resData.content.sha; // 更新 SHA 以供下次儲存
+                    dataSha.value = resData.content.sha;
                     showToast("同步成功！");
                 }
             } catch (e) { 
-                showToast("同步失敗，請檢查網路"); 
+                showToast("同步失敗"); 
             }
             isSyncing.value = false;
         };
@@ -93,21 +94,25 @@ createApp({
             loadFromGitHub();
         };
 
+        // --- 新增行程 ---
         const addItem = () => {
             if (!newItem.value.title) {
                 showToast("請輸入行程名稱");
                 return;
             }
-            // 確保該天數的結構存在
+            // 確保資料結構
             if (!days.value[currentDayIndex.value]) {
                 days.value[currentDayIndex.value] = { items: [] };
             }
-            // 加入資料
-            days.value[currentDayIndex.value].items.push({ ...newItem.value });
-            // 重置
+            // 插入新行程
+            days.value[currentDayIndex.value].items.push({
+                time: newItem.value.time || '--:--',
+                title: newItem.value.title
+            });
+            // 重置並關閉視窗
             newItem.value = { time: '', title: '' };
             showAddModal.value = false;
-            // 儲存
+            // 存檔
             saveToGitHub();
         };
 
@@ -118,7 +123,10 @@ createApp({
             ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast,
             newItem, addItem,
             saveSettings, 
-            onFabClick: () => showAddModal.value = true,
+            onFabClick: () => {
+                console.log("FAB 點擊了，開啟視窗"); // 可以在控制台看到這行
+                showAddModal.value = true;
+            },
             closeAllModals: () => {
                 showSettingsModal.value = false;
                 showAddModal.value = false;

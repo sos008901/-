@@ -5,30 +5,48 @@ createApp({
         const currentTab = ref('schedule');
         const currentDayIndex = ref(0);
         const days = ref([{ items: [] }]);
+        const expenses = ref([]); // 記帳資料
+        const memos = ref([]);    // 備忘錄資料
         const destination = ref('');
         const startDate = ref(''); 
         
         const ghToken = ref(localStorage.getItem('gh_token') || '');
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
-        
-        // 判斷是否顯示主介面
         const isInitialized = ref(!!(localStorage.getItem('gh_token') && localStorage.getItem('gh_repo')));
         
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
-        const showAddModal = ref(false);
+        const showAddModal = ref(false); // 行程彈窗
+        const showMoneyModal = ref(false); // 記帳彈窗
+        const showMemoModal = ref(false); // 備忘彈窗
         const toast = ref({ show: false, message: '' });
+
+        // 暫存新資料
         const newItem = ref({ time: '', title: '' });
+        const newExpense = ref({ item: '', amount: '' });
+        const newMemo = ref({ content: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        
+
+        // --- 工具：計算星期與日期 ---
+        const getDayInfo = (index) => {
+            if (!startDate.value) return { date: `Day ${index + 1}`, week: '' };
+            const date = new Date(startDate.value);
+            date.setDate(date.getDate() + index);
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
+            const week = weekDays[date.getDay()];
+            return { date: `${month}/${day}`, week: `週${week}` };
+        };
+
         const showToast = (msg) => { 
             toast.value = { show: true, message: msg }; 
             setTimeout(() => toast.value.show = false, 2500); 
         };
 
-        // --- 讀取雲端 ---
+        // --- GitHub 同步邏輯 ---
         const loadFromGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
@@ -40,24 +58,23 @@ createApp({
                     const data = await res.json();
                     dataSha.value = data.sha;
                     const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                    
-                    // 只有當雲端有資料時，才覆蓋本地內容
+                    if (content.days) days.value = content.days;
+                    if (content.expenses) expenses.value = content.expenses;
+                    if (content.memos) memos.value = content.memos;
                     if (content.destination) destination.value = content.destination;
                     if (content.startDate) startDate.value = content.startDate;
-                    if (content.days) days.value = content.days;
-                    
-                    showToast("已同步雲端資料");
                 }
-            } catch (e) { console.error("Load Error:", e); }
+            } catch (e) { console.error(e); }
             isSyncing.value = false;
         };
 
-        // --- 存入雲端 ---
         const saveToGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
             const contentObj = { 
                 days: days.value, 
+                expenses: expenses.value,
+                memos: memos.value,
                 destination: destination.value, 
                 startDate: startDate.value,
                 updatedAt: new Date().toISOString() 
@@ -67,81 +84,72 @@ createApp({
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Journey Update", content: contentBase64, sha: dataSha.value })
+                    body: JSON.stringify({ message: "Update Data", content: contentBase64, sha: dataSha.value })
                 });
                 if (res.ok) {
                     const resData = await res.json();
                     dataSha.value = resData.content.sha;
                     showToast("同步成功");
-                    showSettingsModal.value = false;
-                } else {
-                    showToast("同步失敗，請檢查設定");
                 }
-            } catch (e) { showToast("網路連線失敗"); }
+            } catch (e) { showToast("連線失敗"); }
             isSyncing.value = false;
         };
 
-        // --- 進入旅程按鈕 ---
         const saveSettings = async () => {
-            if (!ghToken.value || !ghRepo.value) {
-                showToast("請填寫 GitHub 連線資訊");
-                return;
-            }
-
-            // 1. 先把填寫好的內容存進 localStorage（預防重整）
             localStorage.setItem('gh_token', ghToken.value);
             localStorage.setItem('gh_repo', ghRepo.value);
-            
-            // 2. 暫存這一次在畫面上填寫的內容
-            const tempDest = destination.value;
-            const tempDate = startDate.value;
-
-            // 3. 跳轉頁面
             isInitialized.value = true;
-
-            // 4. 背景執行讀取
             await loadFromGitHub();
-
-            // 5. 如果讀完之後發現雲端目的地是空的，就把剛剛填的補上去並存檔
-            if (!destination.value && tempDest) {
-                destination.value = tempDest;
-                startDate.value = tempDate;
-                await saveToGitHub();
-            }
+            if (!dataSha.value) saveToGitHub();
         };
 
-        const logout = () => {
-            if (confirm("確定要登出並重置所有設定嗎？")) {
-                localStorage.clear();
-                location.reload(); // 重新整理頁面最乾淨
-            }
-        };
-
-        const clearJourney = () => {
-            if (confirm("確定要清空所有行程嗎？")) {
-                days.value = [{ items: [] }];
-                saveToGitHub();
-            }
-        };
-
-        const addItem = () => {
+        // --- 各分頁新增功能 ---
+        const addItem = () => { // 新增行程
             if (!newItem.value.title) return;
-            if (!days.value[currentDayIndex.value]) days.value[currentDayIndex.value] = { items: [] };
             days.value[currentDayIndex.value].items.push({ ...newItem.value });
             newItem.value = { time: '', title: '' };
             showAddModal.value = false;
             saveToGitHub();
         };
 
-        onMounted(() => {
-            if (isInitialized.value) loadFromGitHub();
-        });
+        const addExpense = () => { // 新增記帳
+            if (!newExpense.value.item || !newExpense.value.amount) return;
+            expenses.value.push({ ...newExpense.value, id: Date.now() });
+            newExpense.value = { item: '', amount: '' };
+            showMoneyModal.value = false;
+            saveToGitHub();
+        };
+
+        const addMemo = () => { // 新增備忘
+            if (!newMemo.value.content) return;
+            memos.value.push({ content: newMemo.value.content, id: Date.now() });
+            newMemo.value = { content: '' };
+            showMemoModal.value = false;
+            saveToGitHub();
+        };
+
+        const addNewDay = () => {
+            days.value.push({ items: [] });
+            currentDayIndex.value = days.value.length - 1;
+            saveToGitHub();
+        };
+
+        onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
-            isInitialized, currentTab, days, currentDayItems, destination, startDate,
-            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast,
-            newItem, addItem, saveSettings, saveToGitHub, clearJourney, logout,
-            onFabClick: () => showAddModal.value = true
+            isInitialized, currentTab, days, currentDayIndex, currentDayItems, 
+            expenses, memos, destination, startDate,
+            ghToken, ghRepo, isSyncing, 
+            showSettingsModal, showAddModal, showMoneyModal, showMemoModal, toast,
+            newItem, newExpense, newMemo,
+            addItem, addExpense, addMemo, addNewDay, getDayInfo,
+            saveSettings, saveToGitHub,
+            onFabClick: () => {
+                if (currentTab.value === 'schedule') showAddModal.value = true;
+                else if (currentTab.value === 'money') showMoneyModal.value = true;
+                else if (currentTab.value === 'memo') showMemoModal.value = true;
+            },
+            logout: () => { localStorage.clear(); location.reload(); }
         };
     }
 }).mount('#app');

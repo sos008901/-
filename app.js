@@ -23,13 +23,12 @@ createApp({
         const showMemoModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
-        const newItem = ref({ time: '', title: '' });
+        const newItem = ref({ timeHour: '09', timeMinute: '00', title: '', address: '', note: '' });
         const newExpense = ref({ item: '', amount: '' });
         const newMemo = ref({ content: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
 
-        // --- 自動捲動核心 ---
         const scrollToActive = () => {
             nextTick(() => {
                 const container = scrollContainer.value;
@@ -102,7 +101,7 @@ createApp({
                     dataSha.value = resData.content.sha;
                     showToast("同步成功");
                 }
-            } catch (e) { showToast("同步失敗"); }
+            } catch (e) { showToast("連線失敗"); }
             isSyncing.value = false;
         };
 
@@ -136,8 +135,14 @@ createApp({
 
         const addItem = () => {
             if (!newItem.value.title) return;
-            days.value[currentDayIndex.value].items.push({ ...newItem.value });
-            newItem.value = { time: '', title: '' };
+            const formattedTime = `${newItem.value.timeHour}:${newItem.value.timeMinute}`;
+            days.value[currentDayIndex.value].items.push({
+                time: formattedTime,
+                title: newItem.value.title,
+                address: newItem.value.address,
+                note: newItem.value.note
+            });
+            newItem.value = { timeHour: '09', timeMinute: '00', title: '', address: '', note: '' };
             showAddModal.value = false;
             saveToGitHub();
         };

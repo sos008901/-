@@ -1,6 +1,6 @@
-// 確保 Vue 載入
+// 預留偵錯：防止 Vue 沒載入
 if (typeof Vue === 'undefined') {
-    alert("Vue 載入失敗，請檢查網路連線或 CDN 路徑。");
+    document.body.innerHTML = "<div style='padding:50px; text-align:center;'>Vue Library Load Failed. Check internet connection.</div>";
 }
 
 try {
@@ -8,8 +8,7 @@ try {
 
     const app = createApp({
         setup() {
-            // 基礎狀態
-            const isAppReady = ref(false);
+            const isAppReady = ref(false); // 標載全域載入狀態
             const currentTab = ref('money');
             const currentDayIndex = ref(0);
             const days = ref([{ items: [] }]);
@@ -33,7 +32,7 @@ try {
             const newItem = ref({ hour: '09', minute: '00', title: '' });
             const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同' });
 
-            // 計算邏輯
+            // --- 結算邏輯 ---
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
@@ -42,7 +41,11 @@ try {
                 const total = list.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
                 const shared = list.filter(e => e.type === '共同').reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
                 const priv = total - shared;
-                return { total, shared, private: priv, sharedPercent: total > 0 ? (shared/total)*100 : 0, privatePercent: total > 0 ? (priv/total)*100 : 0 };
+                return {
+                    total, shared, private: priv,
+                    sharedPercent: total > 0 ? (shared / total) * 100 : 0,
+                    privatePercent: total > 0 ? (priv / total) * 100 : 0
+                };
             };
 
             const settlement = computed(() => {
@@ -52,7 +55,7 @@ try {
                     if (e.payer === '我') {
                         if(e.type === '共同') bal += a / 2;
                         if(e.type === '代墊') bal += a;
-                    } else {
+                    } else if (e.payer === '旅伴') {
                         if(e.type === '共同') bal -= a / 2;
                         if(e.type === '代墊') bal -= a;
                     }
@@ -61,6 +64,7 @@ try {
                 return { amount: Math.round(Math.abs(bal)), from: bal > 0 ? '旅伴' : '我', to: bal > 0 ? '我' : '旅伴' };
             });
 
+            // --- 歷史明細分組 ---
             const groupedExpenses = computed(() => {
                 const g = {};
                 (expenses.value || []).forEach(e => {
@@ -73,10 +77,9 @@ try {
 
             const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
 
-            // 輔助方法
+            // --- 方法 ---
             const showToast = (m) => { toast.value = { show: true, message: m }; setTimeout(() => toast.value.show = false, 2000); };
 
-            // GitHub 互動
             const loadFromGitHub = async () => {
                 if (!ghToken.value || !ghRepo.value) return;
                 isSyncing.value = true;
@@ -86,54 +89,57 @@ try {
                     if (res.ok) {
                         const d = await res.json();
                         dataSha.value = d.sha;
-                        const base64Str = d.content.replace(/\s/g, ''); // 移除換行符
+                        const base64Str = d.content.replace(/\s/g, ''); // 過濾換行
                         const content = JSON.parse(decodeURIComponent(escape(atob(base64Str))));
                         days.value = content.days || [{ items: [] }];
                         expenses.value = content.expenses || [];
                         members.value = content.members || ['我', '旅伴'];
                         destination.value = content.destination || '';
                         startDate.value = content.startDate || '';
+                    } else {
+                        if (res.status === 401) { isInitialized.value = false; showToast("Token Expired"); }
                     }
                 } catch (e) {
-                    console.error(e);
+                    console.error("Load Failed:", e);
+                    showToast("Cloud Data Error");
                 } finally { isSyncing.value = false; }
             };
 
             const saveToGitHub = async () => {
+                if (!ghToken.value || !ghRepo.value) return;
                 isSyncing.value = true;
                 try {
-                    const contentObj = { days: days.value, expenses: expenses.value, members: members.value, destination: destination.value, startDate: startDate.value };
-                    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
-                    
                     const check = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json?t=${Date.now()}`, {
                         headers: { 'Authorization': `token ${ghToken.value.trim()}` }
                     });
                     if (check.ok) { const d = await check.json(); dataSha.value = d.sha; }
 
+                    const dataObj = { days: days.value, expenses: expenses.value, members: members.value, destination: destination.value, startDate: startDate.value };
+                    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(dataObj))));
+                    
                     const res = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json`, {
                         method: 'PUT',
                         headers: { 'Authorization': `token ${ghToken.value.trim()}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ message: "Sync", content: base64, sha: dataSha.value || undefined })
                     });
-                    if (res.ok) { const d = await res.json(); dataSha.value = d.content.sha; showToast("同步成功"); }
-                } catch (e) { showToast("同步失敗"); }
+                    if (res.ok) { const d = await res.json(); dataSha.value = d.content.sha; showToast("Saved"); }
+                } catch (e) { showToast("Sync Failed"); }
                 finally { isSyncing.value = false; }
             };
 
             const onFabClick = () => {
                 const now = new Date();
                 if (currentTab.value === 'money') {
-                    newItemExpense.value = { title: '', amount: 0, date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: members.value[0], type: '共同' };
-                } else {
-                    newItem.value = { hour: '09', minute: '00', title: '' };
-                    editingIndex.value = -1;
-                }
+                    newItemExpense.value = { title: '', amount: 0, date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: (members.value && members.value[0]) || '我', type: '共同' };
+                } else { newItem.value = { hour: '09', minute: '00', title: '' }; editingIndex.value = -1; }
                 showAddModal.value = true;
             };
 
             onMounted(async () => {
-                if (isInitialized.value) await loadFromGitHub();
-                isAppReady.value = true; // 標記載入完成
+                try {
+                    if (isInitialized.value) await loadFromGitHub();
+                } catch(e) { console.error(e); }
+                finally { isAppReady.value = true; } // 不管讀取成功與否，最終都要標記為 Ready 才能顯示畫面
             });
 
             return {
@@ -143,7 +149,7 @@ try {
                 onFabClick, saveToGitHub, loadFromGitHub,
                 openTravelerModal: () => { tempMembers.value = [...members.value]; showTravelerModal.value = true; },
                 addTraveler: () => tempMembers.value.push(''),
-                removeTraveler: (i) => tempMembers.value.splice(i, 1),
+                removeTraveler: (i) => { if(tempMembers.value.length > 1) tempMembers.value.splice(i, 1); },
                 saveTravelers: () => { members.value = tempMembers.value.filter(n => n.trim() !== ''); showTravelerModal.value = false; saveToGitHub(); },
                 addExpense: () => { if(!newItemExpense.value.title) return; expenses.value.push({ ...newItemExpense.value }); showAddModal.value = false; saveToGitHub(); },
                 addItem: () => { 
@@ -153,16 +159,22 @@ try {
                     else days.value[currentDayIndex.value].items[editingIndex.value] = it;
                     showAddModal.value = false; saveToGitHub();
                 },
-                saveSettings: () => { localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); isInitialized.value = true; loadFromGitHub(); },
+                deleteItem: () => { days.value[currentDayIndex.value].items.splice(editingIndex.value, 1); showAddModal.value = false; saveToGitHub(); },
+                openEditModal: (i) => { editingIndex.value = i; const it = days.value[currentDayIndex.value].items[i]; const [h, m] = it.time.split(':'); newItem.value = { hour: h, minute: m, title: it.title }; showAddModal.value = true; },
+                saveSettings: () => { 
+                    if(!ghToken.value || !ghRepo.value) return;
+                    localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); 
+                    isInitialized.value = true; loadFromGitHub(); 
+                },
                 selectDay: (i) => currentDayIndex.value = i,
                 addNewDay: () => { days.value.push({ items: [] }); saveToGitHub(); },
-                getDayInfo: (idx) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + idx); return { date: `${d.getMonth() + 1}/${d.getDate()}` }; },
+                getDayInfo: (idx) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + idx); return { date: `${d.getMonth()+1}/${d.getDate()}` }; },
                 formatDisplayDate: (str) => { const d = new Date(str); const ws=['週日','週一','週二','週三','週四','週五','週六']; return `${d.getMonth()+1}月${d.getDate()}日 ${ws[d.getDay()]}`; },
-                logout: () => { localStorage.clear(); location.reload(); }
+                logout: () => { if(confirm("確定登出？")){localStorage.clear(); location.reload();} }
             };
         }
     }).mount('#app');
 
-} catch (error) {
-    alert("初始化失敗！報錯內容：\n" + error.message);
+} catch (err) {
+    alert("Critical Startup Error: " + err.message);
 }

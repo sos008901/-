@@ -13,11 +13,13 @@ createApp({
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
         const isInitialized = ref(!!(localStorage.getItem('gh_token') && localStorage.getItem('gh_repo')));
+        
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
         const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
+        // 狀態管理：編輯與拖移
         const editingIndex = ref(-1); 
         const dragSourceIndex = ref(-1); 
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
@@ -58,42 +60,33 @@ createApp({
             const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value, updatedAt: new Date().toISOString() };
             const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { method: 'PUT', headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value }) });
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { method: 'PUT', headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: "Journey Sync", content: contentBase64, sha: dataSha.value }) });
                 if (res.ok) { const resData = await res.json(); dataSha.value = resData.content.sha; showToast("同步成功"); }
-            } catch (e) { showToast("同步失敗"); }
+            } catch (e) { showToast("連線失敗"); }
             isSyncing.value = false;
         };
 
         // --- 手機觸控拖移邏輯 ---
         let startY = 0;
-        const handleTouchStart = (e, index) => {
-            dragSourceIndex.value = index;
-            startY = e.touches[0].clientY;
-        };
-
+        const handleTouchStart = (e, index) => { dragSourceIndex.value = index; startY = e.touches[0].clientY; };
         const handleTouchMove = (e) => {
             if (dragSourceIndex.value === -1) return;
             const currentY = e.touches[0].clientY;
             const diff = currentY - startY;
-            if (Math.abs(diff) > 60) { // 當滑動距離超過 60px 進行位移
-                const targetIndex = diff > 0 ? dragSourceIndex.value + 1 : dragSourceIndex.value - 1;
-                if (targetIndex >= 0 && targetIndex < currentDayItems.value.length) {
-                    const items = days.value[currentDayIndex.value].items;
-                    const [movedItem] = items.splice(dragSourceIndex.value, 1);
-                    items.splice(targetIndex, 0, movedItem);
-                    dragSourceIndex.value = targetIndex;
+            if (Math.abs(diff) > 70) {
+                const targetIdx = diff > 0 ? dragSourceIndex.value + 1 : dragSourceIndex.value - 1;
+                const items = days.value[currentDayIndex.value].items;
+                if (targetIdx >= 0 && targetIdx < items.length) {
+                    const [moved] = items.splice(dragSourceIndex.value, 1);
+                    items.splice(targetIdx, 0, moved);
+                    dragSourceIndex.value = targetIdx;
                     startY = currentY;
                 }
             }
         };
+        const handleTouchEnd = () => { if (dragSourceIndex.value !== -1) { dragSourceIndex.value = -1; saveToGitHub(); } };
 
-        const handleTouchEnd = () => {
-            if (dragSourceIndex.value !== -1) {
-                dragSourceIndex.value = -1;
-                saveToGitHub();
-            }
-        };
-
+        // --- 行程與天數操作 ---
         const addItem = () => {
             if (!newItem.value.title) return;
             const eventData = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title, address: newItem.value.address, note: newItem.value.note };

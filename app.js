@@ -19,7 +19,6 @@ createApp({
         const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
-        // 編輯狀態
         const editingIndex = ref(-1); 
         const dragSourceIndex = ref(-1); 
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
@@ -92,7 +91,7 @@ createApp({
                     dataSha.value = resData.content.sha;
                     showToast("同步成功");
                 }
-            } catch (e) { showToast("同步失敗"); }
+            } catch (e) { showToast("連線失敗"); }
             isSyncing.value = false;
         };
 
@@ -105,7 +104,6 @@ createApp({
             if (!dataSha.value) saveToGitHub();
         };
 
-        // --- 行程操作 ---
         const openEditModal = (index) => {
             editingIndex.value = index;
             const item = days.value[currentDayIndex.value].items[index];
@@ -145,10 +143,7 @@ createApp({
             }
         };
 
-        // --- 拖移排序邏輯 ---
-        const handleDragStart = (index) => {
-            dragSourceIndex.value = index;
-        };
+        const handleDragStart = (index) => { dragSourceIndex.value = index; };
 
         const handleDrop = (targetIndex) => {
             if (dragSourceIndex.value === -1 || dragSourceIndex.value === targetIndex) return;
@@ -159,7 +154,6 @@ createApp({
             saveToGitHub();
         };
 
-        // --- 天數操作 ---
         const addNewDay = () => {
             days.value.push({ items: [] });
             currentDayIndex.value = days.value.length - 1;

@@ -10,14 +10,10 @@ createApp({
         const scrollContainer = ref(null);
         const loginMode = ref('quick'); 
         
-        // 核心持久化邏輯：從本地儲存讀取
         const ghToken = ref(localStorage.getItem('gh_token') || '');
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
-        
-        // 只要本地有 Token，就預設為已登入狀態，不再輕易跳回登入頁
         const isInitialized = ref(!!(ghToken.value && ghRepo.value));
-        
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
         const showAddModal = ref(false);
@@ -41,14 +37,16 @@ createApp({
             });
         };
 
-        // --- 核心：從 GitHub 讀取最新資料 ---
         const loadFromGitHub = async () => {
-            if (!ghToken.value || !ghRepo.value) return false;
+            if (!ghToken.value || !ghRepo.value) return "MISSING_INFO";
             isSyncing.value = true;
             try {
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { 
                     headers: { 'Authorization': `token ${ghToken.value}`, 'Cache-Control': 'no-cache' } 
                 });
+                if (res.status === 404) return "FILE_NOT_FOUND";
+                if (res.status === 401) return "AUTH_ERROR";
+                
                 if (res.ok) {
                     const data = await res.json(); 
                     dataSha.value = data.sha;
@@ -56,10 +54,10 @@ createApp({
                     if (content.days) days.value = content.days;
                     if (content.destination) destination.value = content.destination;
                     if (content.startDate) startDate.value = content.startDate;
-                    return true;
+                    return "SUCCESS";
                 }
-                return false;
-            } catch (e) { return false; }
+                return "ERROR";
+            } catch (e) { return "NETWORK_ERROR"; }
             finally { isSyncing.value = false; }
         };
 
@@ -78,37 +76,44 @@ createApp({
                     const resData = await res.json(); 
                     dataSha.value = resData.content.sha; 
                     showToast("已同步至雲端"); 
+                } else {
+                    showToast("同步失敗，請檢查 Token 權限");
                 }
-            } catch (e) { showToast("同步失敗，請檢查網路"); }
+            } catch (e) { showToast("網路連線失敗"); }
             isSyncing.value = false;
         };
 
-        // --- 登入與設定 ---
         const saveSettings = async () => {
             if (!ghToken.value || !ghRepo.value) return showToast("請填寫 GitHub 資訊");
             
-            // 儲存至本地，確保下次重新整理不用再打一次
+            // 點擊登入時先存到本地
             localStorage.setItem('gh_token', ghToken.value);
             localStorage.setItem('gh_repo', ghRepo.value);
             
-            const success = await loadFromGitHub();
+            const result = await loadFromGitHub();
             
             if (loginMode.value === 'quick') {
-                if (success) {
+                if (result === "SUCCESS") {
                     isInitialized.value = true;
                     showToast("歡迎回來");
+                } else if (result === "FILE_NOT_FOUND") {
+                    showToast("找不到雲端資料，請使用 New Journey 模式建立");
+                } else if (result === "AUTH_ERROR") {
+                    showToast("Token 無效或權限不足");
                 } else {
-                    showToast("雲端尚無資料，請改用 New Journey 模式");
+                    showToast("連線失敗，請檢查 Repo 名稱");
                 }
             } else {
-                // 新旅程模式：立刻建立雲端檔案
+                // 新旅程模式：若雲端已有檔案會提示，否則直接覆蓋建立
+                if (result === "SUCCESS") {
+                    if(!confirm("雲端已有資料，確定要開啟新旅程並覆蓋嗎？")) return;
+                }
                 isInitialized.value = true;
                 await saveToGitHub();
-                showToast("新旅程已建立");
             }
         };
 
-        // --- 手機觸控拖移 ---
+        // --- 手機觸控拖移邏輯 ---
         let startY = 0;
         const handleTouchStart = (e, index) => { dragSourceIndex.value = index; startY = e.touches[0].clientY; };
         const handleTouchMove = (e) => {
@@ -137,9 +142,7 @@ createApp({
             editingIndex.value = -1; showAddModal.value = false; saveToGitHub();
         };
 
-        onMounted(() => { 
-            if (isInitialized.value) loadFromGitHub(); 
-        });
+        onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
             isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,

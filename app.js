@@ -1,14 +1,15 @@
-// 預留偵錯：防止 Vue 沒載入
-if (typeof Vue === 'undefined') {
-    document.body.innerHTML = "<div style='padding:50px; text-align:center;'>Vue Library Load Failed. Check internet connection.</div>";
-}
+// 全域報錯攔截：如果程式出錯，會跳出 alert
+window.onerror = function(msg, url, line) {
+    alert("程式發生錯誤：\n" + msg + "\n行號：" + line);
+};
 
 try {
     const { createApp, ref, computed, onMounted } = Vue;
 
     const app = createApp({
         setup() {
-            const isAppReady = ref(false); // 標載全域載入狀態
+            // 基礎狀態
+            const isAppReady = ref(false);
             const currentTab = ref('money');
             const currentDayIndex = ref(0);
             const days = ref([{ items: [] }]);
@@ -32,7 +33,7 @@ try {
             const newItem = ref({ hour: '09', minute: '00', title: '' });
             const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同' });
 
-            // --- 結算邏輯 ---
+            // --- 計算屬性：總額與結算 ---
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
@@ -49,7 +50,7 @@ try {
             };
 
             const settlement = computed(() => {
-                let bal = 0; 
+                let bal = 0; // 旅伴欠我為正
                 (expenses.value || []).forEach(e => {
                     const a = Number(e.amount) || 0;
                     if (e.payer === '我') {
@@ -64,10 +65,9 @@ try {
                 return { amount: Math.round(Math.abs(bal)), from: bal > 0 ? '旅伴' : '我', to: bal > 0 ? '我' : '旅伴' };
             });
 
-            // --- 歷史明細分組 ---
             const groupedExpenses = computed(() => {
                 const g = {};
-                (expenses.value || []).forEach(e => {
+                (expenses.value || []).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
                     if (!g[e.date]) g[e.date] = { items: [], total: 0 };
                     g[e.date].items.push(e);
                     g[e.date].total += (Number(e.amount) || 0);
@@ -84,24 +84,23 @@ try {
                 if (!ghToken.value || !ghRepo.value) return;
                 isSyncing.value = true;
                 try {
-                    const url = `https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json?t=${Date.now()}`;
-                    const res = await fetch(url, { headers: { 'Authorization': `token ${ghToken.value.trim()}` } });
+                    const res = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json?t=${Date.now()}`, {
+                        headers: { 'Authorization': `token ${ghToken.value.trim()}` }
+                    });
                     if (res.ok) {
                         const d = await res.json();
                         dataSha.value = d.sha;
-                        const base64Str = d.content.replace(/\s/g, ''); // 過濾換行
-                        const content = JSON.parse(decodeURIComponent(escape(atob(base64Str))));
+                        // 強化解碼邏輯，防範手機瀏覽器報錯
+                        const base64 = d.content.replace(/\s/g, ''); 
+                        const content = JSON.parse(decodeURIComponent(escape(window.atob(base64))));
                         days.value = content.days || [{ items: [] }];
                         expenses.value = content.expenses || [];
                         members.value = content.members || ['我', '旅伴'];
                         destination.value = content.destination || '';
                         startDate.value = content.startDate || '';
-                    } else {
-                        if (res.status === 401) { isInitialized.value = false; showToast("Token Expired"); }
                     }
                 } catch (e) {
-                    console.error("Load Failed:", e);
-                    showToast("Cloud Data Error");
+                    console.error(e);
                 } finally { isSyncing.value = false; }
             };
 
@@ -122,32 +121,30 @@ try {
                         headers: { 'Authorization': `token ${ghToken.value.trim()}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ message: "Sync", content: base64, sha: dataSha.value || undefined })
                     });
-                    if (res.ok) { const d = await res.json(); dataSha.value = d.content.sha; showToast("Saved"); }
-                } catch (e) { showToast("Sync Failed"); }
+                    if (res.ok) { const d = await res.json(); dataSha.value = d.content.sha; showToast("Synced"); }
+                } catch (e) { showToast("Sync Error"); }
                 finally { isSyncing.value = false; }
             };
 
-            const onFabClick = () => {
-                const now = new Date();
-                if (currentTab.value === 'money') {
-                    newItemExpense.value = { title: '', amount: 0, date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: (members.value && members.value[0]) || '我', type: '共同' };
-                } else { newItem.value = { hour: '09', minute: '00', title: '' }; editingIndex.value = -1; }
-                showAddModal.value = true;
-            };
-
             onMounted(async () => {
-                try {
-                    if (isInitialized.value) await loadFromGitHub();
-                } catch(e) { console.error(e); }
-                finally { isAppReady.value = true; } // 不管讀取成功與否，最終都要標記為 Ready 才能顯示畫面
+                // 強制在 3 秒後移除 Loading 畫面，避免卡死
+                setTimeout(() => isAppReady.value = true, 3000);
+                if (isInitialized.value) await loadFromGitHub();
+                isAppReady.value = true;
             });
 
             return {
                 isAppReady, isInitialized, currentTab, days, expenses, members, currentDayIndex, currentDayItems, destination, startDate,
                 ghToken, ghRepo, isSyncing, showAddModal, showSettingsModal, showTravelerModal, toast, 
                 newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses,
-                onFabClick, saveToGitHub, loadFromGitHub,
-                openTravelerModal: () => { tempMembers.value = [...members.value]; showTravelerModal.value = true; },
+                onFabClick: () => {
+                    const now = new Date();
+                    if (currentTab.value === 'money') {
+                        newItemExpense.value = { title: '', amount: 0, date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: members.value[0], type: '共同' };
+                    } else { newItem.value = { hour: '09', minute: '00', title: '' }; editingIndex.value = -1; }
+                    showAddModal.value = true;
+                },
+                saveToGitHub, openTravelerModal: () => { tempMembers.value = [...members.value]; showTravelerModal.value = true; },
                 addTraveler: () => tempMembers.value.push(''),
                 removeTraveler: (i) => { if(tempMembers.value.length > 1) tempMembers.value.splice(i, 1); },
                 saveTravelers: () => { members.value = tempMembers.value.filter(n => n.trim() !== ''); showTravelerModal.value = false; saveToGitHub(); },
@@ -159,10 +156,7 @@ try {
                     else days.value[currentDayIndex.value].items[editingIndex.value] = it;
                     showAddModal.value = false; saveToGitHub();
                 },
-                deleteItem: () => { days.value[currentDayIndex.value].items.splice(editingIndex.value, 1); showAddModal.value = false; saveToGitHub(); },
-                openEditModal: (i) => { editingIndex.value = i; const it = days.value[currentDayIndex.value].items[i]; const [h, m] = it.time.split(':'); newItem.value = { hour: h, minute: m, title: it.title }; showAddModal.value = true; },
                 saveSettings: () => { 
-                    if(!ghToken.value || !ghRepo.value) return;
                     localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); 
                     isInitialized.value = true; loadFromGitHub(); 
                 },
@@ -170,11 +164,11 @@ try {
                 addNewDay: () => { days.value.push({ items: [] }); saveToGitHub(); },
                 getDayInfo: (idx) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + idx); return { date: `${d.getMonth()+1}/${d.getDate()}` }; },
                 formatDisplayDate: (str) => { const d = new Date(str); const ws=['週日','週一','週二','週三','週四','週五','週六']; return `${d.getMonth()+1}月${d.getDate()}日 ${ws[d.getDay()]}`; },
-                logout: () => { if(confirm("確定登出？")){localStorage.clear(); location.reload();} }
+                logout: () => { localStorage.clear(); location.reload(); }
             };
         }
     }).mount('#app');
 
-} catch (err) {
-    alert("Critical Startup Error: " + err.message);
+} catch (e) {
+    alert("Vue 啟動失敗：" + e.message);
 }

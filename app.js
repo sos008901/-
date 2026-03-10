@@ -13,7 +13,6 @@ createApp({
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
         const isInitialized = ref(!!(localStorage.getItem('gh_token') && localStorage.getItem('gh_repo')));
-        
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
         const showAddModal = ref(false);
@@ -24,11 +23,7 @@ createApp({
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        
-        const showToast = (msg) => { 
-            toast.value = { show: true, message: msg }; 
-            setTimeout(() => toast.value.show = false, 2500); 
-        };
+        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
 
         const scrollToActive = () => {
             nextTick(() => {
@@ -41,28 +36,13 @@ createApp({
             });
         };
 
-        const selectDay = (index) => {
-            currentDayIndex.value = index;
-            scrollToActive();
-        };
-
-        const getDayInfo = (index) => {
-            if (!startDate.value) return { date: '-' };
-            const date = new Date(startDate.value);
-            date.setDate(date.getDate() + index);
-            return { date: `${date.getMonth() + 1}/${date.getDate()}` };
-        };
-
         const loadFromGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
-                    headers: { 'Authorization': `token ${ghToken.value}` }
-                });
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { headers: { 'Authorization': `token ${ghToken.value}` } });
                 if (res.ok) {
-                    const data = await res.json();
-                    dataSha.value = data.sha;
+                    const data = await res.json(); dataSha.value = data.sha;
                     const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     if (content.days) days.value = content.days;
                     if (content.destination) destination.value = content.destination;
@@ -75,121 +55,68 @@ createApp({
         const saveToGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
-            const contentObj = { 
-                days: days.value, destination: destination.value, 
-                startDate: startDate.value, updatedAt: new Date().toISOString() 
-            };
+            const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value, updatedAt: new Date().toISOString() };
             const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Journey Sync", content: contentBase64, sha: dataSha.value })
-                });
-                if (res.ok) {
-                    const resData = await res.json();
-                    dataSha.value = resData.content.sha;
-                    showToast("同步成功");
-                }
-            } catch (e) { showToast("連線失敗"); }
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { method: 'PUT', headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value }) });
+                if (res.ok) { const resData = await res.json(); dataSha.value = resData.content.sha; showToast("同步成功"); }
+            } catch (e) { showToast("同步失敗"); }
             isSyncing.value = false;
         };
 
-        const saveSettings = async () => {
-            localStorage.setItem('gh_token', ghToken.value);
-            localStorage.setItem('gh_repo', ghRepo.value);
-            isInitialized.value = true;
-            showSettingsModal.value = false;
-            await loadFromGitHub();
-            if (!dataSha.value) saveToGitHub();
+        // --- 手機觸控拖移邏輯 ---
+        let startY = 0;
+        const handleTouchStart = (e, index) => {
+            dragSourceIndex.value = index;
+            startY = e.touches[0].clientY;
         };
 
-        const openEditModal = (index) => {
-            editingIndex.value = index;
-            const item = days.value[currentDayIndex.value].items[index];
-            const [h, m] = item.time.split(':');
-            newItem.value = { hour: h, minute: m, title: item.title, address: item.address || '', note: item.note || '' };
-            showAddModal.value = true;
+        const handleTouchMove = (e) => {
+            if (dragSourceIndex.value === -1) return;
+            const currentY = e.touches[0].clientY;
+            const diff = currentY - startY;
+            if (Math.abs(diff) > 60) { // 當滑動距離超過 60px 進行位移
+                const targetIndex = diff > 0 ? dragSourceIndex.value + 1 : dragSourceIndex.value - 1;
+                if (targetIndex >= 0 && targetIndex < currentDayItems.value.length) {
+                    const items = days.value[currentDayIndex.value].items;
+                    const [movedItem] = items.splice(dragSourceIndex.value, 1);
+                    items.splice(targetIndex, 0, movedItem);
+                    dragSourceIndex.value = targetIndex;
+                    startY = currentY;
+                }
+            }
+        };
+
+        const handleTouchEnd = () => {
+            if (dragSourceIndex.value !== -1) {
+                dragSourceIndex.value = -1;
+                saveToGitHub();
+            }
         };
 
         const addItem = () => {
             if (!newItem.value.title) return;
-            const eventData = {
-                time: `${newItem.value.hour}:${newItem.value.minute}`,
-                title: newItem.value.title,
-                address: newItem.value.address,
-                note: newItem.value.note
-            };
-            
-            if (editingIndex.value === -1) {
-                days.value[currentDayIndex.value].items.push(eventData);
-            } else {
-                days.value[currentDayIndex.value].items[editingIndex.value] = eventData;
-            }
-            
+            const eventData = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title, address: newItem.value.address, note: newItem.value.note };
+            if (editingIndex.value === -1) days.value[currentDayIndex.value].items.push(eventData);
+            else days.value[currentDayIndex.value].items[editingIndex.value] = eventData;
             newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' };
-            editingIndex.value = -1;
-            showAddModal.value = false;
-            saveToGitHub();
+            editingIndex.value = -1; showAddModal.value = false; saveToGitHub();
         };
-
-        const deleteItem = () => {
-            if (editingIndex.value === -1) return;
-            if (confirm("確定要刪除這個行程嗎？")) {
-                days.value[currentDayIndex.value].items.splice(editingIndex.value, 1);
-                showAddModal.value = false;
-                editingIndex.value = -1;
-                saveToGitHub();
-            }
-        };
-
-        const handleDragStart = (index) => { dragSourceIndex.value = index; };
-
-        const handleDrop = (targetIndex) => {
-            if (dragSourceIndex.value === -1 || dragSourceIndex.value === targetIndex) return;
-            const items = days.value[currentDayIndex.value].items;
-            const [movedItem] = items.splice(dragSourceIndex.value, 1);
-            items.splice(targetIndex, 0, movedItem);
-            dragSourceIndex.value = -1;
-            saveToGitHub();
-        };
-
-        const addNewDay = () => {
-            days.value.push({ items: [] });
-            currentDayIndex.value = days.value.length - 1;
-            saveToGitHub();
-            scrollToActive();
-        };
-
-        const moveDay = (index, dir) => {
-            const newIdx = index + dir;
-            if (newIdx < 0 || newIdx >= days.value.length) return;
-            const arr = [...days.value];
-            [arr[index], arr[newIdx]] = [arr[newIdx], arr[index]];
-            days.value = arr;
-            currentDayIndex.value = newIdx;
-            saveToGitHub();
-            scrollToActive();
-        };
-
-        const deleteDay = (index) => {
-            if (days.value.length <= 1) return showToast("需保留一天");
-            if (confirm("確定刪除此天？")) {
-                days.value.splice(index, 1);
-                currentDayIndex.value = 0;
-                saveToGitHub();
-            }
-        };
-
-        onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
             isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,
-            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem, editingIndex,
-            saveSettings, addItem, deleteItem, openEditModal, addNewDay, getDayInfo, selectDay, moveDay, deleteDay, 
-            handleDragStart, handleDrop,
-            onFabClick: () => { editingIndex.value = -1; showAddModal.value = true; },
-            logout: () => { localStorage.clear(); location.reload(); }
+            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem, editingIndex, dragSourceIndex,
+            saveSettings: async () => { localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); isInitialized.value = true; showSettingsModal.value = false; await loadFromGitHub(); if (!dataSha.value) saveToGitHub(); },
+            addItem, deleteItem: () => { days.value[currentDayIndex.value].items.splice(editingIndex.value, 1); showAddModal.value = false; saveToGitHub(); },
+            openEditModal: (i) => { editingIndex.value = i; const item = days.value[currentDayIndex.value].items[i]; const [h, m] = item.time.split(':'); newItem.value = { hour: h, minute: m, title: item.title, address: item.address || '', note: item.note || '' }; showAddModal.value = true; },
+            addNewDay: () => { days.value.push({ items: [] }); currentDayIndex.value = days.value.length - 1; saveToGitHub(); scrollToActive(); },
+            getDayInfo: (i) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + i); return { date: `${d.getMonth() + 1}/${d.getDate()}` }; },
+            selectDay: (i) => { currentDayIndex.value = i; scrollToActive(); },
+            moveDay: (i, d) => { const n = i + d; if (n < 0 || n >= days.value.length) return; const a = [...days.value]; [a[i], a[n]] = [a[n], a[i]]; days.value = a; currentDayIndex.value = n; saveToGitHub(); scrollToActive(); },
+            deleteDay: (i) => { if (days.value.length <= 1) return; if (confirm("Delete Day?")) { days.value.splice(i, 1); currentDayIndex.value = 0; saveToGitHub(); } },
+            handleTouchStart, handleTouchMove, handleTouchEnd,
+            onFabClick: () => { editingIndex.value = -1; newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' }; showAddModal.value = true; },
+            logout: () => { localStorage.clear(); location.reload(); }, saveToGitHub
         };
     }
 }).mount('#app');

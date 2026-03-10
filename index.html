@@ -12,16 +12,20 @@
 </head>
 <body>
     <div id="app">
-        <div id="app-container" class="bg-washi relative w-full h-full flex flex-col">
-            
-            <div v-if="isInitialized" class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
+        <div v-if="!isAppReady" class="fixed inset-0 flex items-center justify-center bg-[#F4F2EE] text-gray-400 font-serif">
+            <div class="text-center">
+                <h1 class="text-4xl mb-4 tracking-widest">栞</h1>
+                <p class="text-xs animate-pulse">Loading Journey...</p>
+            </div>
+        </div>
+
+        <div v-else id="app-container" class="bg-washi relative w-full h-full flex flex-col">
+            <div class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
                 <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-check-circle'"></i>
                 <span>{{ isSyncing ? 'Syncing...' : 'Synced' }}</span>
             </div>
 
-            <transition name="fade">
-                <div v-if="toast.show" class="toast-box">{{ toast.message }}</div>
-            </transition>
+            <transition name="fade"><div v-if="toast.show" class="toast-box">{{ toast.message }}</div></transition>
 
             <template v-if="!isInitialized">
                 <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8 text-center">
@@ -40,7 +44,7 @@
                     <div class="flex justify-between items-start mb-6">
                         <div class="flex-1 min-w-0">
                             <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">Destination</p>
-                            <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase truncate">{{ destination || 'New Trip' }}</h1>
+                            <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase truncate">{{ destination || 'Fukuoka' }}</h1>
                         </div>
                         <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm"><i class="fas fa-sliders-h"></i></button>
                     </div>
@@ -73,7 +77,10 @@
                                         <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center font-serif font-black text-gray-400 text-lg">{{ member[0] }}</div>
                                         <span class="font-serif font-black text-xl">{{ member }}</span>
                                     </div>
-                                    <div class="text-right font-serif font-black text-theme-main">¥ {{ getMemberTotal(member).total.toLocaleString() }}</div>
+                                    <div class="text-right font-serif font-black text-theme-main">
+                                        <p class="text-xl">¥ {{ getMemberTotal(member).total.toLocaleString() }}</p>
+                                        <p class="text-[10px] text-gray-400 font-sans">≈ NT$ {{ Math.round(getMemberTotal(member).total * 0.21).toLocaleString() }}</p>
+                                    </div>
                                 </div>
                                 <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
                                     <div class="h-full bg-theme-main transition-all duration-500" :style="{ width: getMemberTotal(member).sharedPercent + '%' }"></div>
@@ -96,6 +103,7 @@
                                 </div>
                                 <div class="text-right">
                                     <p class="text-xl font-serif font-black text-red-800">¥ {{ settlement.amount.toLocaleString() }}</p>
+                                    <p class="text-[10px] font-bold text-gray-400 font-sans">≈ NT$ {{ Math.round(settlement.amount * 0.21).toLocaleString() }}</p>
                                 </div>
                             </div>
                         </div>
@@ -195,7 +203,6 @@
                         <div><label class="premium-label">Title</label><input v-model="newItem.title" class="premium-input" placeholder="景點名稱"></div>
                         <div><label class="premium-label text-center block">Time</label><div class="time-pill"><input v-model="newItem.hour" class="time-input" placeholder="09"><span class="mx-2">:</span><input v-model="newItem.minute" class="time-input" placeholder="00"></div></div>
                         <button @click="addItem" class="btn-gold uppercase tracking-widest">SAVE EVENT</button>
-                        <button v-if="editingIndex !== -1" @click="deleteItem" class="w-full text-red-400 text-[10px] font-black uppercase py-2">Delete Event</button>
                     </div>
                 </div>
             </div>
@@ -204,14 +211,13 @@
                 <div class="modal-card !max-w-[20rem]">
                     <h3 class="font-serif font-black mb-6 text-xl text-center border-b pb-4 uppercase tracking-widest">Settings</h3>
                     <div class="space-y-5">
-                        <div><label class="premium-label">Destination</label><input v-model="destination" class="premium-input text-center font-bold"></div>
-                        <div><label class="premium-label">Start Date</label><input v-model="startDate" type="date" class="premium-input"></div>
+                        <input v-model="destination" class="premium-input text-center font-bold" placeholder="Destination">
+                        <input v-model="startDate" type="date" class="premium-input">
                         <button @click="saveToGitHub" class="btn-gold">UPDATE CLOUD</button>
                         <button @click="logout" class="w-full py-3 text-red-400 font-bold text-[10px] bg-red-50 rounded-2xl mt-4">LOGOUT</button>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
     <script src="app.js"></script>

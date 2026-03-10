@@ -24,28 +24,21 @@ createApp({
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
-
-        const scrollToActive = () => {
-            nextTick(() => {
-                const container = scrollContainer.value;
-                const activeCard = document.getElementById(`day-card-${currentDayIndex.value}`);
-                if (container && activeCard) {
-                    const scrollLeft = activeCard.offsetLeft - (container.offsetWidth / 2) + (activeCard.offsetWidth / 2);
-                    container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
-                }
-            });
-        };
+        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 3000); };
 
         const loadFromGitHub = async () => {
-            if (!ghToken.value || !ghRepo.value) return "MISSING_INFO";
+            // 自動去空白防誤觸
+            const token = ghToken.value.trim();
+            const repo = ghRepo.value.trim();
+            if (!token || !repo) return "MISSING";
+
             isSyncing.value = true;
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { 
-                    headers: { 'Authorization': `token ${ghToken.value}`, 'Cache-Control': 'no-cache' } 
+                const res = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, { 
+                    headers: { 'Authorization': `token ${token}`, 'Cache-Control': 'no-cache' } 
                 });
-                if (res.status === 404) return "FILE_NOT_FOUND";
-                if (res.status === 401) return "AUTH_ERROR";
+                if (res.status === 404) return "404_NOT_FOUND";
+                if (res.status === 401) return "401_UNAUTHORIZED";
                 
                 if (res.ok) {
                     const data = await res.json(); 
@@ -56,64 +49,58 @@ createApp({
                     if (content.startDate) startDate.value = content.startDate;
                     return "SUCCESS";
                 }
-                return "ERROR";
-            } catch (e) { return "NETWORK_ERROR"; }
+                return `ERROR_${res.status}`;
+            } catch (e) { return "NETWORK_FAIL"; }
             finally { isSyncing.value = false; }
         };
 
         const saveToGitHub = async () => {
-            if (!ghToken.value || !ghRepo.value) return;
+            const token = ghToken.value.trim();
+            const repo = ghRepo.value.trim();
+            if (!token || !repo) return;
+
             isSyncing.value = true;
             const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value, updatedAt: new Date().toISOString() };
             const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
             try {
-                const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, { 
-                    method: 'PUT', 
-                    headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' }, 
+                const res = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, { 
+                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, 
                     body: JSON.stringify({ message: "Sync from device", content: contentBase64, sha: dataSha.value }) 
                 });
                 if (res.ok) { 
                     const resData = await res.json(); 
                     dataSha.value = resData.content.sha; 
-                    showToast("已同步至雲端"); 
+                    showToast("同步成功"); 
                 } else {
-                    showToast("同步失敗，請檢查 Token 權限");
+                    showToast(`同步失敗 (${res.status})，請確認 Token 權限`);
                 }
             } catch (e) { showToast("網路連線失敗"); }
             isSyncing.value = false;
         };
 
         const saveSettings = async () => {
-            if (!ghToken.value || !ghRepo.value) return showToast("請填寫 GitHub 資訊");
+            if (!ghToken.value || !ghRepo.value) return showToast("請完整填寫連線資訊");
             
-            // 點擊登入時先存到本地
+            // 儲存時自動去空白
+            ghToken.value = ghToken.value.trim();
+            ghRepo.value = ghRepo.value.trim();
             localStorage.setItem('gh_token', ghToken.value);
             localStorage.setItem('gh_repo', ghRepo.value);
             
             const result = await loadFromGitHub();
             
             if (loginMode.value === 'quick') {
-                if (result === "SUCCESS") {
-                    isInitialized.value = true;
-                    showToast("歡迎回來");
-                } else if (result === "FILE_NOT_FOUND") {
-                    showToast("找不到雲端資料，請使用 New Journey 模式建立");
-                } else if (result === "AUTH_ERROR") {
-                    showToast("Token 無效或權限不足");
-                } else {
-                    showToast("連線失敗，請檢查 Repo 名稱");
-                }
+                if (result === "SUCCESS") { isInitialized.value = true; showToast("歡迎回來"); }
+                else if (result === "404_NOT_FOUND") { showToast("找不到雲端檔案，請使用 New Journey 建立"); }
+                else if (result === "401_UNAUTHORIZED") { showToast("Token 無效，請檢查 Token 權限"); }
+                else { showToast(`連線失敗: ${result}，請檢查 Repo 名稱`); }
             } else {
-                // 新旅程模式：若雲端已有檔案會提示，否則直接覆蓋建立
-                if (result === "SUCCESS") {
-                    if(!confirm("雲端已有資料，確定要開啟新旅程並覆蓋嗎？")) return;
-                }
-                isInitialized.value = true;
-                await saveToGitHub();
+                if (result === "SUCCESS") { if(!confirm("雲端已有資料，確定覆蓋嗎？")) return; }
+                isInitialized.value = true; await saveToGitHub();
             }
         };
 
-        // --- 手機觸控拖移邏輯 ---
+        // --- 手機手柄拖移邏輯 ---
         let startY = 0;
         const handleTouchStart = (e, index) => { dragSourceIndex.value = index; startY = e.touches[0].clientY; };
         const handleTouchMove = (e) => {
@@ -133,6 +120,7 @@ createApp({
         };
         const handleTouchEnd = () => { if (dragSourceIndex.value !== -1) { dragSourceIndex.value = -1; saveToGitHub(); } };
 
+        // --- 行程操作 ---
         const addItem = () => {
             if (!newItem.value.title) return;
             const eventData = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title, address: newItem.value.address, note: newItem.value.note };
@@ -141,6 +129,8 @@ createApp({
             newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' };
             editingIndex.value = -1; showAddModal.value = false; saveToGitHub();
         };
+
+        const scrollToActive = () => { nextTick(() => { const container = scrollContainer.value; const activeCard = document.getElementById(`day-card-${currentDayIndex.value}`); if (container && activeCard) { container.scrollTo({ left: activeCard.offsetLeft - (container.offsetWidth / 2) + (activeCard.offsetWidth / 2), behavior: 'smooth' }); } }); };
 
         onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
@@ -157,7 +147,7 @@ createApp({
             deleteDay: (i) => { if (days.value.length <= 1) return; if (confirm("確定刪除此天？")) { days.value.splice(i, 1); currentDayIndex.value = 0; saveToGitHub(); } },
             handleTouchStart, handleTouchMove, handleTouchEnd,
             onFabClick: () => { editingIndex.value = -1; newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' }; showAddModal.value = true; },
-            logout: () => { if(confirm("確定登出？這會清除此裝置的登入資訊")){localStorage.clear(); location.reload();} },
+            logout: () => { if(confirm("確定登出？")){localStorage.clear(); location.reload();} },
             saveToGitHub
         };
     }

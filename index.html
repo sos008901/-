@@ -26,7 +26,7 @@
                 <h1 class="text-7xl font-serif mb-2 tracking-widest">栞</h1>
                 <p class="text-[10px] text-theme-accent mb-10 tracking-[0.2em] uppercase">Travel Assistant</p>
                 
-                <div class="flex bg-[#1E2122] p-1 rounded-2xl mb-8 w-full max-w-xs shadow-inner">
+                <div class="flex bg-[#1E2122] p-1 rounded-2xl mb-8 w-full max-w-xs">
                     <button @click="loginMode = 'quick'" :class="loginMode === 'quick' ? 'bg-[#2C3032] text-white shadow-lg' : 'text-gray-500'" class="flex-1 py-2.5 text-[10px] font-bold rounded-xl transition-all uppercase tracking-widest">Existing</button>
                     <button @click="loginMode = 'new'" :class="loginMode === 'new' ? 'bg-[#2C3032] text-white shadow-lg' : 'text-gray-500'" class="flex-1 py-2.5 text-[10px] font-bold rounded-xl transition-all uppercase tracking-widest">New Journey</button>
                 </div>
@@ -66,7 +66,7 @@
                 <div class="flex justify-between items-start mb-6">
                     <div>
                         <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">Destination</p>
-                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase line-clamp-1">{{ destination }}</h1>
+                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase line-clamp-1">{{ destination || 'FUKUOKA' }}</h1>
                         <p class="text-[10px] text-gray-400 mt-1 font-bold">{{ startDate }}</p>
                     </div>
                     <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-theme-sub shadow-sm active:scale-90"><i class="fas fa-cog"></i></button>
@@ -164,7 +164,7 @@
                             <input v-model="newItem.minute" class="time-input" maxlength="2" placeholder="00">
                         </div>
                     </div>
-                    <div><label class="premium-label text-center block uppercase tracking-widest">LINK / ADDRESS</label><input v-model="newItem.address" class="premium-input" placeholder="地址或網址"></div>
+                    <div><label class="premium-label text-center block uppercase tracking-widest">LINK / ADDRESS</label><input v-model="newItem.address" class="premium-input" placeholder="地址或相關網址"></div>
                     <div><label class="premium-label text-center block uppercase tracking-widest">NOTE</label><textarea v-model="newItem.note" class="premium-input h-32 resize-none" placeholder="寫下備註..."></textarea></div>
                     <button @click="addItem" class="btn-gold uppercase tracking-widest">SAVE EVENT</button>
                     <button v-if="editingIndex !== -1" @click="deleteItem" class="text-[10px] font-bold text-red-400 py-2 uppercase tracking-widest text-center w-full active:scale-95">Delete Event</button>

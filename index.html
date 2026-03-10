@@ -78,13 +78,13 @@
                             <button @click="moveDay(currentDayIndex, -1)" :disabled="currentDayIndex === 0" class="day-ctrl-btn" :class="{'opacity-20': currentDayIndex === 0}"><i class="fas fa-chevron-left"></i></button>
                             <button @click="moveDay(currentDayIndex, 1)" :disabled="currentDayIndex === days.length - 1" class="day-ctrl-btn" :class="{'opacity-20': currentDayIndex === days.length - 1}"><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <button @click="deleteDay(currentDayIndex)" class="text-[9px] font-bold text-red-400 uppercase tracking-widest">Delete Day</button>
+                        <button @click="deleteDay(currentDayIndex)" class="text-[9px] font-bold text-red-400 uppercase tracking-widest active:text-red-600">Delete Day</button>
                     </div>
                     <div ref="scrollContainer" class="flex gap-3 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth">
                         <button v-for="(day, index) in days" :key="index" :id="'day-card-' + index" @click="selectDay(index)"
                                 :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'"
                                 class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 shadow-sm border">
-                            <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">DAY {{ index + 1 }}</span>
+                            <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">Day {{ index + 1 }}</span>
                             <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
                         </button>
                         <button @click="addNewDay" class="flex-shrink-0 w-16 h-20 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 flex items-center justify-center active:bg-gray-100"><i class="fas fa-plus"></i></button>
@@ -164,10 +164,10 @@
                             <input v-model="newItem.minute" class="time-input" maxlength="2" placeholder="00">
                         </div>
                     </div>
-                    <div><label class="premium-label text-center block uppercase tracking-widest">LINK / ADDRESS</label><input v-model="newItem.address" class="premium-input" placeholder="地址或相關網址"></div>
+                    <div><label class="premium-label text-center block uppercase tracking-widest">LINK / ADDRESS</label><input v-model="newItem.address" class="premium-input" placeholder="地址或網址"></div>
                     <div><label class="premium-label text-center block uppercase tracking-widest">NOTE</label><textarea v-model="newItem.note" class="premium-input h-32 resize-none" placeholder="寫下備註..."></textarea></div>
                     <button @click="addItem" class="btn-gold uppercase tracking-widest">SAVE EVENT</button>
-                    <button v-if="editingIndex !== -1" @click="deleteItem" class="text-[10px] font-bold text-red-400 py-2 uppercase tracking-widest text-center w-full">Delete Event</button>
+                    <button v-if="editingIndex !== -1" @click="deleteItem" class="text-[10px] font-bold text-red-400 py-2 uppercase tracking-widest text-center w-full active:scale-95">Delete Event</button>
                 </div>
             </div>
         </div>

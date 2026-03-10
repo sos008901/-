@@ -1,17 +1,17 @@
 :root {
     --theme-main: #2C3032;   
     --theme-accent: #C5A059; 
-    --theme-bg: #F4F2EE;
+    --theme-bg: #F4F2EE; /* 和紙感背景色 */
 }
 
-* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; outline: none; }
+* { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
 body { background-color: var(--theme-bg); color: var(--theme-main); font-family: 'Noto Sans TC', sans-serif; overflow: hidden; }
 [v-cloak] { display: none !important; }
 
 #app-container { max-width: 480px; margin: 0 auto; height: 100dvh; position: relative; display: flex; flex-direction: column; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 
-/* 記帳總覽卡片 */
+/* Grand Total 卡片 */
 .expense-total-card {
     background: linear-gradient(135deg, #2C3032 0%, #1A1C1E 100%);
     border-radius: 2.8rem;
@@ -20,49 +20,46 @@ body { background-color: var(--theme-bg); color: var(--theme-main); font-family:
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
 }
 
-.member-expense-card {
+/* 成員與明細卡片 */
+.member-card {
     background: white;
     padding: 1.8rem;
     border-radius: 2.5rem;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.01);
 }
 
-.expense-item-row {
-    background: white;
-    padding: 1.2rem 1.5rem;
-    border-radius: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+/* 結算標籤 */
+.pays-pill {
+    background-color: var(--theme-accent);
+    color: white;
+    font-size: 8px;
+    font-weight: 900;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
 }
 
 /* UI 組件 */
-.glass-panel { background: rgba(244, 242, 238, 0.98); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(0,0,0,0.03); z-index: 10; }
-.schedule-item-card { background: white; padding: 1.2rem 1.5rem; border-radius: 2rem; display: flex; min-height: 120px; box-shadow: 0 4px 15px rgba(0,0,0,0.02); }
-.note-single-line { font-size: 11px; color: #8E9193; margin-top: 10px; padding: 8px 12px; background-color: #F9F9F9; border-radius: 12px; border-left: 2px solid #E5E7EB; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.login-input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); padding: 1.2rem; border-radius: 1.2rem; color: white; text-align: center; font-size: 14px; }
 .premium-label { font-family: 'Cinzel', serif; font-size: 10px; font-weight: 700; letter-spacing: 0.15em; color: #8E9193; text-transform: uppercase; margin-bottom: 0.8rem; }
-.premium-input { width: 100%; background-color: #F8F9F9; border: 1.5px solid transparent; padding: 1.2rem 1.5rem; border-radius: 1.8rem; transition: 0.3s; }
-.premium-input:focus { background-color: #FFFFFF; border-color: var(--theme-accent); }
+.premium-input { width: 100%; background-color: #F8F9F9; border: 1.5px solid transparent; padding: 1.2rem; border-radius: 1.8rem; outline: none; transition: 0.3s; }
+.premium-input:focus { border-color: var(--theme-accent); background: white; }
 
-.time-pill { background-color: #F8F9F9; border-radius: 3rem; display: flex; align-items: center; justify-content: center; height: 56px; }
-.time-input { background: transparent; border: none; width: 2.5rem; text-align: center; font-family: 'Cinzel', serif; font-size: 20px; font-weight: 700; color: var(--theme-main); }
-
-.btn-gold { width: 100%; background-color: var(--theme-accent); color: white; height: 60px; border-radius: 2.5rem; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.1em; box-shadow: 0 10px 20px rgba(197, 160, 89, 0.2); }
+.btn-gold { width: 100%; background-color: var(--theme-main); color: var(--theme-accent); height: 60px; border-radius: 2.5rem; font-family: 'Cinzel', serif; font-weight: 700; letter-spacing: 0.1em; }
 .btn-gold:active { transform: scale(0.97); }
 
-.nav-bar-container { position: absolute; bottom: 0; width: 100%; height: 90px; background: rgba(252, 251, 249, 0.98); display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid rgba(0,0,0,0.03); z-index: 100; }
+.nav-bar-container { position: absolute; bottom: 0; width: 100%; height: 90px; background: rgba(252, 251, 249, 0.98); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(0,0,0,0.03); z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
 .nav-item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-family: 'Cinzel', serif; font-size: 9px; font-weight: 700; color: #9BA0A3; }
 .nav-item-active { color: var(--theme-accent); }
 
-.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px); z-index: 1000; display: flex; items: center; justify-content: center; padding: 2rem; }
-.modal-card { background: white; width: 100%; border-radius: 3rem; max-height: 90vh; overflow-y: auto; }
 .fab-btn { position: absolute; bottom: 120px; right: 1.5rem; width: 3.8rem; height: 3.8rem; border-radius: 2rem; background-color: var(--theme-main); color: var(--theme-accent); display: flex; align-items: center; justify-content: center; z-index: 900; box-shadow: 0 8px 25px rgba(0,0,0,0.2); font-size: 1.4rem; }
 
-.day-card-active { background-color: var(--theme-main); color: white; transform: translateY(-3px); }
+.day-card-active { background-color: var(--theme-main); color: white; border-color: var(--theme-main); }
 .day-card-inactive { background-color: white; color: #9BA0A3; border-color: #EEE; }
 
+.modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px); z-index: 1000; display: flex; items: center; justify-content: center; padding: 2rem; }
+.modal-card { background: white; width: 100%; border-radius: 3rem; max-height: 90vh; overflow-y: auto; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
 .animate-fade-in { animation: fadeIn 0.4s ease-out; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-.no-scrollbar::-webkit-scrollbar { display: none; }

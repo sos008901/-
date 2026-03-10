@@ -6,9 +6,9 @@ createApp({
         const currentDayIndex = ref(0);
         const days = ref([{ items: [] }]);
         const expenses = ref([]);
+        const members = ref(['我', '旅伴']);
         const destination = ref('');
         const startDate = ref('');
-        const members = ref(['我', '旅伴']);
         
         const ghToken = ref(localStorage.getItem('gh_token') || '');
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
@@ -16,77 +16,52 @@ createApp({
         const isInitialized = ref(!!(ghToken.value && ghRepo.value));
         const isSyncing = ref(false);
         const showAddModal = ref(false);
+        const showSettingsModal = ref(false);
+        const showTravelerModal = ref(false);
+        const toast = ref({ show: false, message: '' });
 
+        const tempMembers = ref([]);
+        const newItem = ref({ hour: '09', minute: '00', title: '' });
         const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '我', type: '共同' });
 
-        // 計算總額 (JPY/TWD)
         const totalJPY = computed(() => expenses.value.reduce((sum, e) => sum + Number(e.amount), 0));
         const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
-        // 成員支出計算
         const getMemberTotal = (name) => {
             const total = expenses.value.filter(e => e.payer === name).reduce((sum, e) => sum + Number(e.amount), 0);
             const shared = expenses.value.filter(e => e.payer === name && e.type === '共同').reduce((sum, e) => sum + Number(e.amount), 0);
-            const privateExp = expenses.value.filter(e => e.payer === name && (e.type === '自費' || e.type === '代墊')).reduce((sum, e) => sum + Number(e.amount), 0);
-            return {
-                total, shared, private: privateExp,
-                sharedPercent: total > 0 ? (shared / total) * 100 : 0,
-                privatePercent: total > 0 ? (privateExp / total) * 100 : 0
-            };
+            const priv = total - shared;
+            return { total, shared, private: priv, sharedPercent: total > 0 ? (shared/total)*100 : 0, privatePercent: total > 0 ? (priv/total)*100 : 0 };
         };
 
-        // 自動結算邏輯
         const settlement = computed(() => {
-            let balance = 0; // 正代表旅伴欠我
-            expenses.value.forEach(exp => {
-                const amt = Number(exp.amount);
-                if (exp.payer === '我') {
-                    if (exp.type === '共同') balance += amt / 2;
-                    if (exp.type === '代墊') balance += amt;
-                } else {
-                    if (exp.type === '共同') balance -= amt / 2;
-                    if (exp.type === '代墊') balance -= amt;
-                }
+            let bal = 0; // 旅伴欠我為正
+            expenses.value.forEach(e => {
+                const a = Number(e.amount);
+                if (e.payer === '我') { if(e.type === '共同') bal += a/2; if(e.type === '代墊') bal += a; }
+                else { if(e.type === '共同') bal -= a/2; if(e.type === '代墊') bal -= a; }
             });
-            return {
-                amount: Math.round(Math.abs(balance)),
-                from: balance > 0 ? '旅伴' : '我',
-                to: balance > 0 ? '我' : '旅伴'
-            };
+            return { amount: Math.round(Math.abs(bal)), from: bal > 0 ? '旅伴' : '我', to: bal > 0 ? '我' : '旅伴' };
         });
 
-        // 明細分組 (按日期)
         const groupedExpenses = computed(() => {
-            const groups = {};
-            expenses.value.forEach(exp => {
-                if (!groups[exp.date]) groups[exp.date] = { items: [], total: 0 };
-                groups[exp.date].items.push(exp);
-                groups[exp.date].total += Number(exp.amount);
-            });
-            return groups;
+            const g = {};
+            expenses.value.forEach(e => { if(!g[e.date]) g[e.date] = { items: [], total: 0 }; g[e.date].items.push(e); g[e.date].total += Number(e.amount); });
+            return g;
         });
 
-        const formatDisplayDate = (dateStr) => {
-            const date = new Date(dateStr);
-            const weeks = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
-            return `${date.getMonth() + 1}月${date.getDate()}日 ${weeks[date.getDay()]}`;
-        };
+        const openTravelerModal = () => { tempMembers.value = [...members.value]; showTravelerModal.value = true; };
+        const addTraveler = () => tempMembers.value.push('');
+        const removeTraveler = (i) => tempMembers.value.splice(i, 1);
+        const saveTravelers = () => { members.value = tempMembers.value.filter(n => n.trim() !== ''); showTravelerModal.value = false; saveToGitHub(); };
 
         const onFabClick = () => {
-            const now = new Date();
-            newItemExpense.value = { title: '', amount: 0, date: now.toISOString().split('T')[0], 
-                time: now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: '我', type: '共同' };
+            const n = new Date();
+            if (currentTab.value === 'money') { newItemExpense.value = { title: '', amount: 0, date: n.toISOString().split('T')[0], time: n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: '我', type: '共同' }; }
+            else { newItem.value = { hour: '09', minute: '00', title: '' }; }
             showAddModal.value = true;
         };
 
-        const addExpense = () => {
-            if (!newItemExpense.value.title || newItemExpense.value.amount <= 0) return;
-            expenses.value.push({ ...newItemExpense.value });
-            showAddModal.value = false;
-            saveToGitHub();
-        };
-
-        // GitHub 同步功能維持原樣
         const loadFromGitHub = async () => {
             if (!ghToken.value || !ghRepo.value) return;
             isSyncing.value = true;
@@ -95,46 +70,42 @@ createApp({
                     headers: { 'Authorization': `token ${ghToken.value.trim()}` }
                 });
                 if (res.ok) {
-                    const data = await res.json(); dataSha.value = data.sha;
-                    const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                    days.value = content.days || [{ items: [] }];
-                    expenses.value = content.expenses || [];
-                    destination.value = content.destination || '';
-                    startDate.value = content.startDate || '';
+                    const d = await res.json(); dataSha.value = d.sha;
+                    const c = JSON.parse(decodeURIComponent(escape(atob(d.content))));
+                    days.value = c.days || [{ items: [] }]; expenses.value = c.expenses || [];
+                    members.value = c.members || ['我', '旅伴']; destination.value = c.destination || ''; startDate.value = c.startDate || '';
                 }
             } finally { isSyncing.value = false; }
         };
 
         const saveToGitHub = async () => {
             isSyncing.value = true;
-            const contentObj = { days: days.value, expenses: expenses.value, destination: destination.value, startDate: startDate.value };
-            const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
+            const c = btoa(unescape(encodeURIComponent(JSON.stringify({ days: days.value, expenses: expenses.value, members: members.value, destination: destination.value, startDate: startDate.value }))));
             try {
+                const check = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json?t=${Date.now()}`, { headers: { 'Authorization': `token ${ghToken.value.trim()}` } });
+                if (check.ok) { const d = await check.json(); dataSha.value = d.sha; }
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json`, {
-                    method: 'PUT',
-                    headers: { 'Authorization': `token ${ghToken.value.trim()}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Update Budget", content: contentBase64, sha: dataSha.value })
+                    method: 'PUT', headers: { 'Authorization': `token ${ghToken.value.trim()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: "Sync", content: c, sha: dataSha.value })
                 });
                 if (res.ok) { const d = await res.json(); dataSha.value = d.content.sha; }
             } finally { isSyncing.value = false; }
         };
 
-        const saveSettings = () => {
-            localStorage.setItem('gh_token', ghToken.value);
-            localStorage.setItem('gh_repo', ghRepo.value);
-            isInitialized.value = true;
-            loadFromGitHub();
-        };
-
         onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
-            isInitialized, currentTab, days, expenses, currentDayIndex, destination, startDate, members,
-            ghToken, ghRepo, isSyncing, showAddModal, newItemExpense,
-            totalJPY, totalTWD, settlement, groupedExpenses, 
-            onFabClick, addExpense, getMemberTotal, formatDisplayDate, saveSettings,
+            isInitialized, currentTab, days, expenses, members, currentDayIndex, destination, startDate,
+            ghToken, ghRepo, isSyncing, showAddModal, showSettingsModal, showTravelerModal, toast, 
+            newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses,
+            onFabClick, openTravelerModal, addTraveler, removeTraveler, saveTravelers,
+            addExpense: () => { expenses.value.push({ ...newItemExpense.value }); showAddModal.value = false; saveToGitHub(); },
+            addItem: () => { days.value[currentDayIndex.value].items.push({ time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title }); showAddModal.value = false; saveToGitHub(); },
+            saveSettings: () => { localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); isInitialized.value = true; loadFromGitHub(); },
             selectDay: (i) => currentDayIndex.value = i,
-            getDayInfo: (i) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + i); return { date: `${d.getMonth() + 1}/${d.getDate()}` }; }
+            addNewDay: () => { days.value.push({ items: [] }); saveToGitHub(); },
+            getDayInfo: (i) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + i); return { date: `${d.getMonth() + 1}/${d.getDate()}` }; },
+            logout: () => { localStorage.clear(); location.reload(); }
         };
     }
 }).mount('#app');

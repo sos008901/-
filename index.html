@@ -10,30 +10,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="bg-[#F4F2EE]">
     <div id="app">
-        <div v-if="!isAppReady" class="fixed inset-0 flex items-center justify-center bg-[#F4F2EE] text-gray-400 z-[3000]">
+        <div v-if="!isAppReady" class="fixed inset-0 flex items-center justify-center bg-[#F4F2EE] z-[3000]">
             <div class="text-center">
-                <h1 class="text-4xl font-serif mb-4 tracking-widest">栞</h1>
-                <p class="text-[10px] font-serif animate-pulse uppercase tracking-widest">Loading Journey...</p>
+                <h1 class="text-4xl font-serif mb-4 tracking-widest text-[#2C3032]">栞</h1>
+                <p class="text-[10px] font-serif animate-pulse uppercase tracking-widest text-gray-400">Initializing...</p>
             </div>
         </div>
 
-        <div v-else id="app-container" class="bg-washi relative w-full h-full flex flex-col">
-            
-            <div v-if="isInitialized" class="cloud-status absolute top-safe-top left-5 mt-2 z-50 text-[10px] text-theme-accent flex items-center gap-2">
+        <div v-if="errorMessage" class="fixed bottom-0 left-0 right-0 bg-red-500 text-white p-4 text-[10px] z-[4000] break-all">
+            <strong>ERROR:</strong> {{ errorMessage }}
+        </div>
+
+        <div id="app-container" class="bg-washi relative w-full h-full flex flex-col mx-auto" style="max-width: 480px;">
+            <div v-if="isInitialized" class="absolute top-10 left-6 z-50 text-[10px] text-[#C5A059] flex items-center gap-2">
                 <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-check-circle'"></i>
                 <span>{{ isSyncing ? 'Syncing...' : 'Synced' }}</span>
             </div>
 
-            <transition name="fade">
-                <div v-if="toast.show" class="toast-box">{{ toast.message }}</div>
-            </transition>
+            <transition name="fade"><div v-if="toast.show" class="toast-box">{{ toast.message }}</div></transition>
 
             <template v-if="!isInitialized">
                 <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8 text-center">
                     <h1 class="text-7xl font-serif mb-2 tracking-widest">栞</h1>
-                    <p class="text-[10px] text-theme-accent mb-10 tracking-[0.2em] uppercase">Travel Assistant</p>
+                    <p class="text-[10px] text-[#C5A059] mb-10 tracking-[0.2em] uppercase">Travel Assistant</p>
                     <div class="w-full max-w-xs space-y-4">
                         <input v-model.trim="ghToken" type="password" class="login-input" placeholder="GitHub Token">
                         <input v-model.trim="ghRepo" class="login-input" placeholder="Username/Repo">
@@ -43,17 +44,17 @@
             </template>
 
             <template v-else>
-                <header class="pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-4">
+                <header class="pt-20 px-6 pb-4">
                     <div class="flex justify-between items-start mb-6">
                         <div class="flex-1 min-w-0">
-                            <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">Destination</p>
-                            <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase truncate">{{ destination || 'New Trip' }}</h1>
+                            <p class="text-[10px] text-[#C5A059] font-black tracking-widest uppercase mb-1">Destination</p>
+                            <h1 class="text-3xl font-serif font-bold text-[#2C3032] tracking-widest uppercase truncate">{{ destination || 'New Trip' }}</h1>
                         </div>
                         <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm"><i class="fas fa-sliders-h"></i></button>
                     </div>
 
                     <div v-if="currentTab === 'schedule'" class="flex gap-3 overflow-x-auto no-scrollbar py-2">
-                        <button v-for="(day, index) in days" :key="index" @click="selectDay(index)" :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'" class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all">
+                        <button v-for="(day, index) in days" :key="index" @click="selectDay(index)" :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'" class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all shadow-sm">
                             <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">Day {{ index + 1 }}</span>
                             <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
                         </button>
@@ -65,7 +66,7 @@
                     <div v-if="currentTab === 'money'" class="animate-fade-in">
                         <div class="expense-total-card mb-10 relative">
                             <div class="flex justify-between items-start mb-6">
-                                <p class="text-[10px] text-theme-accent font-black tracking-[0.2em] uppercase">Grand Total</p>
+                                <p class="text-[10px] text-[#C5A059] font-black tracking-[0.2em] uppercase">Grand Total</p>
                                 <button @click="openTravelerModal" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs text-gray-300"><i class="fas fa-user-group"></i></button>
                             </div>
                             <h2 class="text-5xl font-serif font-bold tracking-tight">¥ {{ totalJPY.toLocaleString() }}</h2>
@@ -80,18 +81,12 @@
                                         <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center font-serif font-black text-gray-400 text-lg">{{ member[0] }}</div>
                                         <span class="font-serif font-black text-xl">{{ member }}</span>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-lg font-serif font-black text-theme-main">¥ {{ getMemberTotal(member).total.toLocaleString() }}</p>
-                                        <p class="text-[10px] text-gray-400 font-sans">≈ NT$ {{ Math.round(getMemberTotal(member).total * 0.21).toLocaleString() }}</p>
+                                    <div class="text-right font-serif font-black">
+                                        <p class="text-lg">¥ {{ getMemberTotal(member).total.toLocaleString() }}</p>
                                     </div>
                                 </div>
                                 <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
-                                    <div class="h-full bg-theme-main transition-all" :style="{ width: getMemberTotal(member).sharedPercent + '%' }"></div>
-                                    <div class="h-full bg-theme-accent opacity-50 transition-all" :style="{ width: getMemberTotal(member).privatePercent + '%' }"></div>
-                                </div>
-                                <div class="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2">
-                                    <span>● Shared: ¥{{ getMemberTotal(member).shared.toLocaleString() }}</span>
-                                    <span class="text-theme-accent">● Private: ¥{{ getMemberTotal(member).private.toLocaleString() }}</span>
+                                    <div class="h-full bg-[#2C3032] transition-all" :style="{ width: getMemberTotal(member).percent + '%' }"></div>
                                 </div>
                             </div>
                         </div>
@@ -112,17 +107,17 @@
 
                         <div v-for="(group, date) in groupedExpenses" :key="date" class="mb-8">
                             <div class="flex justify-between items-center mb-4 px-1 border-b border-gray-100 pb-2">
-                                <span class="text-[11px] font-black text-gray-400 tracking-widest uppercase">{{ formatDisplayDate(date) }}</span>
-                                <span class="text-[11px] font-black font-serif text-theme-main">¥ {{ group.total.toLocaleString() }}</span>
+                                <span class="text-[11px] font-black text-gray-400 tracking-widest uppercase">{{ date }}</span>
+                                <span class="text-[11px] font-black font-serif text-[#2C3032]">¥ {{ group.total.toLocaleString() }}</span>
                             </div>
                             <div class="space-y-3">
                                 <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm">
                                     <div class="flex justify-between items-center">
                                         <div>
                                             <h5 class="text-lg font-serif font-black">{{ exp.title }}</h5>
-                                            <p class="text-[10px] text-gray-400">{{ exp.payer }} 付款 | {{ exp.type }}</p>
+                                            <p class="text-[10px] text-gray-400">{{ exp.payer }} | {{ exp.type }}</p>
                                         </div>
-                                        <div class="font-serif font-black text-theme-main">¥ {{ (Number(exp.amount) || 0).toLocaleString() }}</div>
+                                        <div class="font-serif font-black text-[#2C3032]">¥ {{ (Number(exp.amount) || 0).toLocaleString() }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -131,10 +126,10 @@
 
                     <div v-if="currentTab === 'schedule'" class="space-y-4">
                         <div v-for="(item, index) in currentDayItems" :key="index" class="schedule-item-card" @click="openEditModal(index)">
-                            <div class="w-1 bg-theme-accent rounded-full mr-4"></div>
+                            <div class="w-1 bg-[#C5A059] rounded-full mr-4"></div>
                             <div class="flex-1 text-left min-w-0">
-                                <span class="text-[10px] font-black text-theme-accent tracking-widest">{{ item.time }}</span>
-                                <h3 class="text-lg font-serif font-black text-theme-main mt-0.5 truncate">{{ item.title }}</h3>
+                                <span class="text-[10px] font-black text-[#C5A059] tracking-widest">{{ item.time }}</span>
+                                <h3 class="text-lg font-serif font-black text-[#2C3032] mt-0.5 truncate">{{ item.title }}</h3>
                             </div>
                         </div>
                     </div>
@@ -151,26 +146,9 @@
                 </nav>
             </template>
 
-            <div v-if="showTravelerModal" class="modal-mask" @click.self="showTravelerModal = false">
-                <div class="modal-card !p-8 !max-w-[22rem]">
-                    <h2 class="text-center font-serif font-black text-2xl mb-8 tracking-widest">Travelers</h2>
-                    <div class="space-y-4 mb-8">
-                        <div v-for="(name, index) in tempMembers" :key="index" class="flex items-center gap-4">
-                            <span class="font-serif font-black text-theme-accent text-sm w-4">{{ index + 1 }}</span>
-                            <div class="flex-1 relative">
-                                <input v-model="tempMembers[index]" class="premium-input !py-3 !px-6 !bg-gray-100 !rounded-full font-bold">
-                                <button @click="removeTraveler(index)" class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center"><i class="fas fa-times"></i></button>
-                            </div>
-                        </div>
-                        <button @click="addTraveler" class="w-full py-4 border-2 border-dashed border-theme-accent/30 rounded-full text-theme-accent text-[11px] font-black uppercase tracking-widest">+ Add New Traveler</button>
-                    </div>
-                    <button @click="saveTravelers" class="btn-gold !bg-theme-main !text-white !rounded-2xl py-5 text-sm uppercase tracking-widest">Save Changes</button>
-                </div>
-            </div>
-
             <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
                 <div class="modal-card !p-8 !max-w-[26rem]">
-                    <h2 class="text-center font-serif font-black text-2xl mb-10 tracking-widest uppercase">New Expense</h2>
+                    <h2 class="text-center font-serif font-black text-2xl mb-10 tracking-widest uppercase text-[#2C3032]">New Expense</h2>
                     <div class="space-y-8">
                         <div class="text-center">
                             <label class="premium-label">Item</label>
@@ -180,21 +158,34 @@
                                 <span class="absolute left-6 top-1/2 -translate-y-1/2 font-serif text-gray-300 text-2xl">¥</span>
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-4 text-center">
-                            <div><label class="premium-label">Date</label><input v-model="newItemExpense.date" type="date" class="premium-input text-xs text-center"></div>
-                            <div><label class="premium-label">Time</label><input v-model="newItemExpense.time" type="time" class="premium-input text-xs text-center"></div>
-                        </div>
                         <div>
-                            <label class="premium-label text-center block">付款人 PAYER</label>
+                            <label class="premium-label text-center block">PAYER</label>
                             <div class="flex flex-wrap justify-center gap-3 mt-2">
-                                <button v-for="m in members" @click="newItemExpense.payer = m" :class="newItemExpense.payer === m ? 'bg-theme-main text-white' : 'bg-white border-2 border-gray-100 text-gray-300'" class="px-6 py-3 rounded-2xl font-black text-sm">{{ m }}</button>
+                                <button v-for="m in members" :key="m" @click="newItemExpense.payer = m" :class="newItemExpense.payer === m ? 'bg-[#2C3032] text-white' : 'bg-white border-2 border-gray-100 text-gray-300'" class="px-6 py-3 rounded-2xl font-black text-sm">{{ m }}</button>
                             </div>
                         </div>
                         <div class="flex bg-gray-100 p-1.5 rounded-2xl">
-                            <button v-for="t in ['共同', '自費', '代墊']" @click="newItemExpense.type = t" :class="newItemExpense.type === t ? 'bg-theme-accent text-white shadow-md' : 'text-gray-400'" class="flex-1 py-2.5 rounded-xl font-bold text-xs">{{ t }}</button>
+                            <button v-for="t in ['共同', '自費', '代墊']" :key="t" @click="newItemExpense.type = t" :class="newItemExpense.type === t ? 'bg-[#C5A059] text-white shadow-md' : 'text-gray-400'" class="flex-1 py-2.5 rounded-xl font-bold text-xs">{{ t }}</button>
                         </div>
                         <button @click="addExpense" class="btn-gold !rounded-3xl py-5 text-base shadow-xl">CONFIRM</button>
                     </div>
+                </div>
+            </div>
+
+            <div v-if="showTravelerModal" class="modal-mask" @click.self="showTravelerModal = false">
+                <div class="modal-card !p-8 !max-w-[22rem]">
+                    <h2 class="text-center font-serif font-black text-2xl mb-8 tracking-widest">Travelers</h2>
+                    <div class="space-y-4 mb-8">
+                        <div v-for="(name, index) in tempMembers" :key="index" class="flex items-center gap-4">
+                            <span class="font-serif font-black text-[#C5A059] text-sm w-4">{{ index + 1 }}</span>
+                            <div class="flex-1 relative">
+                                <input v-model="tempMembers[index]" class="premium-input !py-3 !px-6 !bg-gray-100 !rounded-full font-bold">
+                                <button @click="removeTraveler(index)" class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button @click="addTraveler" class="w-full py-4 border-2 border-dashed border-[#C5A059]/30 rounded-full text-[#C5A059] text-[11px] font-black uppercase tracking-widest">+ Add New Traveler</button>
+                    </div>
+                    <button @click="saveTravelers" class="btn-gold !bg-[#2C3032] !text-white !rounded-2xl py-5 text-sm uppercase tracking-widest">Save Changes</button>
                 </div>
             </div>
 
@@ -209,7 +200,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
     <script src="app.js"></script>

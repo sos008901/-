@@ -14,6 +14,7 @@ createApp({
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
         const isInitialized = ref(!!(ghToken.value && ghRepo.value));
+        
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
         const showAddModal = ref(false);
@@ -24,75 +25,97 @@ createApp({
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 3500); };
+        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 3000); };
 
-        const syncData = async (type = 'load') => {
-            const token = ghToken.value.trim();
-            const repo = ghRepo.value.trim();
-            if (!token || !repo) return "EMPTY";
+        // --- 1. 最單純的讀取：只要 Token 對，就一定抓得到 ---
+        const loadFromGitHub = async () => {
+            if (!ghToken.value || !ghRepo.value) return false;
             isSyncing.value = true;
             try {
-                const url = `https://api.github.com/repos/${repo}/contents/data.json?t=${Date.now()}`;
-                const res = await fetch(url, { headers: { 'Authorization': `token ${token}`, 'Cache-Control': 'no-cache' } });
-                if (res.status === 401) return "AUTH_ERROR";
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json?t=${Date.now()}`, {
+                    headers: { 'Authorization': `token ${ghToken.value.trim()}` }
+                });
                 if (res.ok) {
-                    const data = await res.json(); dataSha.value = data.sha;
-                    if (type === 'load') {
-                        const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                        days.value = content.days || [{ items: [] }];
-                        destination.value = content.destination || '';
-                        startDate.value = content.startDate || '';
-                        return "LOADED";
-                    }
+                    const data = await res.json();
+                    dataSha.value = data.sha;
+                    const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                    days.value = content.days || [{ items: [] }];
+                    destination.value = content.destination || '';
+                    startDate.value = content.startDate || '';
+                    return true;
                 }
-                if (type === 'save') {
-                    const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value, updatedAt: new Date().toISOString() };
-                    const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
-                    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, { 
-                        method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value || undefined })
-                    });
-                    if (putRes.ok) { const putData = await putRes.json(); dataSha.value = putData.content.sha; return "SAVED"; }
-                    if (putRes.status === 409) return "CONFLICT";
-                }
-                return res.status === 404 ? "NOT_FOUND" : "ERROR";
-            } catch (e) { return "NETWORK_FAIL"; }
+                return false;
+            } catch (e) { return false; }
             finally { isSyncing.value = false; }
         };
 
+        // --- 2. 最單純的儲存：存之前先補 SHA 防 409 ---
         const saveToGitHub = async () => {
-            const result = await syncData('save');
-            if (result === "SAVED") showToast("同步成功");
-            else if (result === "CONFLICT") { showToast("正在修復衝突..."); await syncData('save'); }
-            else showToast(`同步失敗: ${result}`);
+            if (!ghToken.value || !ghRepo.value) return;
+            isSyncing.value = true;
+
+            // 存之前先抓一次最新的 SHA 
+            const checkRes = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json?t=${Date.now()}`, {
+                headers: { 'Authorization': `token ${ghToken.value.trim()}` }
+            });
+            if (checkRes.ok) {
+                const checkData = await checkRes.json();
+                dataSha.value = checkData.sha;
+            }
+
+            const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value };
+            const contentBase64 = btoa(unescape(encodeURIComponent(JSON.stringify(contentObj))));
+            
+            try {
+                const res = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${ghToken.value.trim()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value || undefined })
+                });
+                if (res.ok) {
+                    const resData = await res.json();
+                    dataSha.value = resData.content.sha;
+                    showToast("同步成功");
+                } else {
+                    showToast("同步失敗，請檢查 Token 權限");
+                }
+            } catch (e) { showToast("網路錯誤"); }
+            finally { isSyncing.value = false; }
         };
 
+        // --- 3. 登入邏輯：不再區分，統一嘗試 load ---
         const saveSettings = async () => {
-            ghToken.value = ghToken.value.trim(); ghRepo.value = ghRepo.value.trim();
-            if (!ghToken.value || !ghRepo.value) return showToast("請完整填寫資訊");
-            const res = await syncData('load');
+            const token = ghToken.value.trim();
+            const repo = ghRepo.value.trim();
+            if (!token || !repo) return showToast("請完整填寫");
+
+            localStorage.setItem('gh_token', token);
+            localStorage.setItem('gh_repo', repo);
+
             if (loginMode.value === 'quick') {
-                if (res === "LOADED") { localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); isInitialized.value = true; showToast("歡迎回來"); }
-                else showToast(`錯誤: ${res}`);
+                const success = await loadFromGitHub();
+                if (success) {
+                    isInitialized.value = true;
+                    showToast("歡迎回來");
+                } else {
+                    showToast("抓不到舊資料，請改用 New Journey");
+                }
             } else {
-                isInitialized.value = true; localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); await saveToGitHub();
+                // New Journey 模式：直接進去並嘗試存檔
+                isInitialized.value = true;
+                await saveToGitHub();
             }
         };
 
-        // --- 一鍵清除功能 ---
         const clearAllData = async () => {
-            if (confirm("⚠️ 注意：這會刪除此旅程的所有行程、目的地與日期，且無法復原。確定要清空嗎？")) {
-                destination.value = "";
-                startDate.value = "";
-                days.value = [{ items: [] }];
-                currentDayIndex.value = 0;
+            if (confirm("⚠️ 確定要清空雲端資料嗎？")) {
+                days.value = [{ items: [] }]; destination.value = ""; startDate.value = "";
                 await saveToGitHub();
-                showToast("資料已全數清空");
                 showSettingsModal.value = false;
             }
         };
 
-        // --- 拖移與其餘邏輯 ---
+        // --- 其餘手柄拖移與操作維持不變 ---
         let startY = 0;
         const handleTouchStart = (e, index) => { dragSourceIndex.value = index; startY = e.touches[0].clientY; };
         const handleTouchMove = (e) => {
@@ -109,7 +132,6 @@ createApp({
             }
         };
         const handleTouchEnd = () => { if (dragSourceIndex.value !== -1) { dragSourceIndex.value = -1; saveToGitHub(); } };
-
         const addItem = () => {
             if (!newItem.value.title) return;
             const ev = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title, address: newItem.value.address, note: newItem.value.note };
@@ -119,7 +141,7 @@ createApp({
             editingIndex.value = -1; showAddModal.value = false; saveToGitHub();
         };
 
-        onMounted(() => { if (isInitialized.value) syncData('load'); });
+        onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
             isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,
@@ -134,7 +156,7 @@ createApp({
             deleteDay: (i) => { if (days.value.length <= 1) return; if (confirm("Delete Day?")) { days.value.splice(i, 1); currentDayIndex.value = 0; saveToGitHub(); } },
             handleTouchStart, handleTouchMove, handleTouchEnd,
             onFabClick: () => { editingIndex.value = -1; newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' }; showAddModal.value = true; },
-            logout: () => { if(confirm("確定登出此裝置？")){localStorage.clear(); location.reload();} }, saveToGitHub
+            logout: () => { if(confirm("確定登出？")){localStorage.clear(); location.reload();} }, saveToGitHub
         };
     }
 }).mount('#app');

@@ -19,10 +19,6 @@
             </div>
         </div>
 
-        <div v-if="errorMessage" class="fixed bottom-0 left-0 right-0 bg-red-500 text-white p-4 text-[10px] z-[4000] break-all">
-            <strong>ERROR:</strong> {{ errorMessage }}
-        </div>
-
         <div id="app-container" class="bg-washi relative w-full h-full flex flex-col mx-auto" style="max-width: 480px;">
             <div v-if="isInitialized" class="absolute top-10 left-6 z-50 text-[10px] text-[#C5A059] flex items-center gap-2">
                 <i class="fas" :class="isSyncing ? 'fa-spinner animate-spin' : 'fa-check-circle'"></i>
@@ -67,7 +63,7 @@
                         <div class="expense-total-card mb-10 relative">
                             <div class="flex justify-between items-start mb-6">
                                 <p class="text-[10px] text-[#C5A059] font-black tracking-[0.2em] uppercase">Grand Total</p>
-                                <button @click="openTravelerModal" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs text-gray-300"><i class="fas fa-user-group"></i></button>
+                                <button @click="openTravelerModal" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-xs text-gray-300 active:scale-90 transition-transform"><i class="fas fa-user-group"></i></button>
                             </div>
                             <h2 class="text-5xl font-serif font-bold tracking-tight">¥ {{ totalJPY.toLocaleString() }}</h2>
                             <p class="text-xs text-gray-400 mt-2">≈ NT$ {{ totalTWD.toLocaleString() }}</p>
@@ -81,11 +77,11 @@
                                         <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center font-serif font-black text-gray-400 text-lg">{{ member[0] }}</div>
                                         <span class="font-serif font-black text-xl">{{ member }}</span>
                                     </div>
-                                    <div class="text-right font-serif font-black">
+                                    <div class="text-right font-serif font-black text-[#2C3032]">
                                         <p class="text-lg">¥ {{ getMemberTotal(member).total.toLocaleString() }}</p>
                                     </div>
                                 </div>
-                                <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
+                                <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                     <div class="h-full bg-[#2C3032] transition-all" :style="{ width: getMemberTotal(member).percent + '%' }"></div>
                                 </div>
                             </div>
@@ -107,15 +103,15 @@
 
                         <div v-for="(group, date) in groupedExpenses" :key="date" class="mb-8">
                             <div class="flex justify-between items-center mb-4 px-1 border-b border-gray-100 pb-2">
-                                <span class="text-[11px] font-black text-gray-400 tracking-widest uppercase">{{ date }}</span>
+                                <span class="text-[11px] font-black text-gray-400 tracking-widest uppercase">{{ formatDisplayDate(date) }}</span>
                                 <span class="text-[11px] font-black font-serif text-[#2C3032]">¥ {{ group.total.toLocaleString() }}</span>
                             </div>
                             <div class="space-y-3">
-                                <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm">
+                                <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm" @contextmenu.prevent="deleteExpense(exp)">
                                     <div class="flex justify-between items-center">
                                         <div>
                                             <h5 class="text-lg font-serif font-black">{{ exp.title }}</h5>
-                                            <p class="text-[10px] text-gray-400">{{ exp.payer }} | {{ exp.type }}</p>
+                                            <p class="text-[10px] text-gray-400">{{ exp.payer }} 付款 | {{ exp.type }} | 分擔: {{ exp.splitWith.join(', ') }}</p>
                                         </div>
                                         <div class="font-serif font-black text-[#2C3032]">¥ {{ (Number(exp.amount) || 0).toLocaleString() }}</div>
                                     </div>
@@ -135,9 +131,7 @@
                     </div>
                 </main>
 
-                <button @click="onFabClick" class="fab-btn shadow-2xl">
-                    <i class="fas" :class="currentTab === 'money' ? 'fa-pen-nib' : 'fa-plus'"></i>
-                </button>
+                <button @click="onFabClick" class="fab-btn shadow-2xl"><i class="fas" :class="currentTab === 'money' ? 'fa-pen-nib' : 'fa-plus'"></i></button>
 
                 <nav class="nav-bar-container">
                     <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'nav-item-active':''" class="nav-item"><i class="fas fa-map"></i><span>SCHEDULE</span></button>
@@ -145,32 +139,6 @@
                     <button @click="currentTab='memo'" :class="currentTab==='memo'?'nav-item-active':''" class="nav-item"><i class="fas fa-book-open"></i><span>MEMO</span></button>
                 </nav>
             </template>
-
-            <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
-                <div class="modal-card !p-8 !max-w-[26rem]">
-                    <h2 class="text-center font-serif font-black text-2xl mb-10 tracking-widest uppercase text-[#2C3032]">New Expense</h2>
-                    <div class="space-y-8">
-                        <div class="text-center">
-                            <label class="premium-label">Item</label>
-                            <input v-model="newItemExpense.title" class="premium-input !bg-transparent !border-b-2 !border-gray-100 !rounded-none text-center text-lg" placeholder="消費項目">
-                            <div class="relative mt-4">
-                                <input v-model.number="newItemExpense.amount" type="number" class="premium-input text-center text-4xl font-serif font-black" placeholder="0">
-                                <span class="absolute left-6 top-1/2 -translate-y-1/2 font-serif text-gray-300 text-2xl">¥</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="premium-label text-center block">PAYER</label>
-                            <div class="flex flex-wrap justify-center gap-3 mt-2">
-                                <button v-for="m in members" :key="m" @click="newItemExpense.payer = m" :class="newItemExpense.payer === m ? 'bg-[#2C3032] text-white' : 'bg-white border-2 border-gray-100 text-gray-300'" class="px-6 py-3 rounded-2xl font-black text-sm">{{ m }}</button>
-                            </div>
-                        </div>
-                        <div class="flex bg-gray-100 p-1.5 rounded-2xl">
-                            <button v-for="t in ['共同', '自費', '代墊']" :key="t" @click="newItemExpense.type = t" :class="newItemExpense.type === t ? 'bg-[#C5A059] text-white shadow-md' : 'text-gray-400'" class="flex-1 py-2.5 rounded-xl font-bold text-xs">{{ t }}</button>
-                        </div>
-                        <button @click="addExpense" class="btn-gold !rounded-3xl py-5 text-base shadow-xl">CONFIRM</button>
-                    </div>
-                </div>
-            </div>
 
             <div v-if="showTravelerModal" class="modal-mask" @click.self="showTravelerModal = false">
                 <div class="modal-card !p-8 !max-w-[22rem]">
@@ -186,6 +154,56 @@
                         <button @click="addTraveler" class="w-full py-4 border-2 border-dashed border-[#C5A059]/30 rounded-full text-[#C5A059] text-[11px] font-black uppercase tracking-widest">+ Add New Traveler</button>
                     </div>
                     <button @click="saveTravelers" class="btn-gold !bg-[#2C3032] !text-white !rounded-2xl py-5 text-sm uppercase tracking-widest">Save Changes</button>
+                </div>
+            </div>
+
+            <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
+                <div class="modal-card !p-8 !max-w-[26rem]">
+                    <h2 class="text-center font-serif font-black text-2xl mb-10 tracking-widest uppercase text-[#2C3032]">New Expense</h2>
+                    <div class="space-y-8">
+                        <div class="text-center">
+                            <label class="premium-label">Item</label>
+                            <input v-model="newItemExpense.title" class="premium-input !bg-transparent !border-b-2 !border-gray-100 !rounded-none text-center text-lg" placeholder="消費項目">
+                            <div class="relative mt-4">
+                                <input v-model.number="newItemExpense.amount" type="number" class="premium-input text-center text-4xl font-serif font-black" placeholder="0">
+                                <span class="absolute left-6 top-1/2 -translate-y-1/2 font-serif text-gray-300 text-2xl">¥</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="premium-label">Date</label><input v-model="newItemExpense.date" type="date" class="premium-input text-xs text-center"></div>
+                            <div><label class="premium-label">Time</label><input v-model="newItemExpense.time" type="time" class="premium-input text-xs text-center"></div>
+                        </div>
+                        <div>
+                            <label class="premium-label text-center block">付款人 PAYER</label>
+                            <div class="flex flex-wrap justify-center gap-3 mt-2">
+                                <button v-for="m in members" :key="'p-'+m" @click="newItemExpense.payer = m" :class="newItemExpense.payer === m ? 'bg-[#2C3032] text-white' : 'bg-white border-2 border-gray-100 text-gray-300'" class="px-6 py-3 rounded-2xl font-black text-sm">{{ m }}</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="premium-label text-center block">分擔對象 (預設全員)</label>
+                            <div class="flex flex-wrap justify-center gap-3 mt-2">
+                                <button v-for="m in members" :key="'s-'+m" @click="toggleSplitMember(m)" :class="newItemExpense.splitWith.includes(m) ? 'bg-[#C5A059] text-white shadow-md' : 'bg-white border-2 border-gray-100 text-gray-300'" class="w-11 h-11 rounded-full font-black text-xs flex items-center justify-center transition-all">
+                                    {{ m[0] }}
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex bg-gray-100 p-1.5 rounded-2xl">
+                            <button v-for="t in ['共同', '自費', '代墊']" :key="t" @click="newItemExpense.type = t" :class="newItemExpense.type === t ? 'bg-[#C5A059] text-white shadow-md' : 'text-gray-400'" class="flex-1 py-2.5 rounded-xl font-bold text-xs">{{ t }}</button>
+                        </div>
+                        <button @click="addExpense" class="btn-gold !rounded-3xl py-5 text-base shadow-xl">CONFIRM</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="showAddModal && currentTab === 'schedule'" class="modal-mask" @click.self="showAddModal = false">
+                <div class="modal-card !p-8 !max-w-[24rem]">
+                    <h2 class="text-center font-serif font-black text-2xl text-theme-main mb-10 uppercase tracking-widest">{{ editingIndex === -1 ? 'New Event' : 'Edit Event' }}</h2>
+                    <div class="space-y-8">
+                        <div><label class="premium-label">Title</label><input v-model="newItem.title" class="premium-input" placeholder="景點名稱"></div>
+                        <div><label class="premium-label text-center block">Time</label><div class="time-pill"><input v-model="newItem.hour" class="time-input" placeholder="09"><span class="mx-2">:</span><input v-model="newItem.minute" class="time-input" placeholder="00"></div></div>
+                        <button @click="addItem" class="btn-gold uppercase tracking-widest">SAVE EVENT</button>
+                        <button v-if="editingIndex !== -1" @click="deleteItem" class="w-full text-red-400 text-[10px] font-black uppercase py-2">Delete Event</button>
+                    </div>
                 </div>
             </div>
 

@@ -36,15 +36,15 @@
         <template v-else>
             <header class="pt-[calc(env(safe-area-inset-top)+40px)] px-6 pb-4">
                 <div class="flex justify-between items-start mb-6">
-                    <div>
+                    <div class="flex-1 min-w-0">
                         <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">Destination</p>
-                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase truncate max-w-[240px]">{{ destination || 'New Trip' }}</h1>
+                        <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase truncate">{{ destination || 'Fukuoka' }}</h1>
                     </div>
                     <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm"><i class="fas fa-sliders-h"></i></button>
                 </div>
 
                 <div v-if="currentTab === 'schedule'" class="flex gap-3 overflow-x-auto no-scrollbar py-2">
-                    <button v-for="(day, index) in days" @click="selectDay(index)" :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'" class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all">
+                    <button v-for="(day, index) in days" :key="index" @click="selectDay(index)" :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'" class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all">
                         <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">Day {{ index + 1 }}</span>
                         <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
                     </button>
@@ -71,7 +71,10 @@
                                     <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center font-serif font-black text-gray-400 text-lg">{{ member[0] }}</div>
                                     <span class="font-serif font-black text-xl">{{ member }}</span>
                                 </div>
-                                <div class="text-right font-serif font-black">¥ {{ getMemberTotal(member).total.toLocaleString() }}</div>
+                                <div class="text-right font-serif font-black">
+                                    <p class="text-lg">¥ {{ getMemberTotal(member).total.toLocaleString() }}</p>
+                                    <p class="text-[10px] text-gray-400">≈ NT$ {{ Math.round(getMemberTotal(member).total * 0.21).toLocaleString() }}</p>
+                                </div>
                             </div>
                             <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex">
                                 <div class="h-full bg-theme-main transition-all duration-500" :style="{ width: getMemberTotal(member).sharedPercent + '%' }"></div>
@@ -97,16 +100,16 @@
                     <div v-for="(group, date) in groupedExpenses" :key="date" class="mb-8">
                         <div class="flex justify-between items-center mb-4 px-1 border-b border-gray-100 pb-2">
                             <span class="text-[11px] font-black text-gray-400 tracking-widest uppercase">{{ date }}</span>
-                            <span class="text-[11px] font-black font-serif">¥ {{ group.total.toLocaleString() }}</span>
+                            <span class="text-[11px] font-black font-serif text-theme-main">¥ {{ group.total.toLocaleString() }}</span>
                         </div>
                         <div class="space-y-3">
-                            <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4">
+                            <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm">
                                 <div class="flex justify-between items-center">
                                     <div>
                                         <h5 class="text-lg font-serif font-black">{{ exp.title }}</h5>
                                         <p class="text-[10px] text-gray-400">{{ exp.payer }} 付款 | {{ exp.type }}</p>
                                     </div>
-                                    <div class="font-serif font-black">¥ {{ Number(exp.amount).toLocaleString() }}</div>
+                                    <div class="font-serif font-black text-theme-main">¥ {{ Number(exp.amount).toLocaleString() }}</div>
                                 </div>
                             </div>
                         </div>
@@ -118,18 +121,19 @@
                         <div class="w-1 bg-theme-accent rounded-full mr-4"></div>
                         <div class="flex-1 text-left">
                             <span class="text-[10px] font-black text-theme-accent tracking-widest">{{ item.time }}</span>
-                            <h3 class="text-lg font-serif font-black text-theme-main mt-0.5">{{ item.title }}</h3>
+                            <h3 class="text-lg font-serif font-black text-theme-main mt-0.5 truncate">{{ item.title }}</h3>
                         </div>
                     </div>
+                    <div v-if="currentDayItems.length === 0" class="text-center py-24 text-gray-300 italic text-xs tracking-widest uppercase">Empty Journey</div>
                 </div>
             </main>
 
             <button @click="onFabClick" class="fab-btn shadow-2xl"><i class="fas" :class="currentTab === 'money' ? 'fa-pen-nib' : 'fa-plus'"></i></button>
 
             <nav class="nav-bar-container">
-                <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'nav-item-active':''" class="nav-item"><i class="fas fa-map"></i><span>SCHEDULE</span></button>
-                <button @click="currentTab='money'" :class="currentTab==='money'?'nav-item-active':''" class="nav-item"><i class="fas fa-credit-card"></i><span>BUDGET</span></button>
-                <button @click="currentTab='memo'" :class="currentTab==='memo'?'nav-item-active':''" class="nav-item"><i class="fas fa-book-open"></i><span>MEMO</span></button>
+                <button @click="currentTab='schedule'" :class="currentTab==='schedule'?'nav-item-active':''" class="nav-item"><i class="fas fa-map-location-dot"></i><span>SCHEDULE</span></button>
+                <button @click="currentTab='money'" :class="currentTab==='money'?'nav-item-active':''" class="nav-item"><i class="fas fa-wallet"></i><span>BUDGET</span></button>
+                <button @click="currentTab='memo'" :class="currentTab==='memo'?'nav-item-active':''" class="nav-item"><i class="fas fa-note-sticky"></i><span>MEMO</span></button>
             </nav>
         </template>
 
@@ -182,11 +186,12 @@
 
         <div v-if="showAddModal && currentTab === 'schedule'" class="modal-mask" @click.self="showAddModal = false">
             <div class="modal-card !p-8 !max-w-[24rem]">
-                <h2 class="text-center font-serif font-black text-2xl mb-10 uppercase tracking-widest">New Event</h2>
+                <h2 class="text-center font-serif font-black text-2xl text-theme-main mb-10 uppercase tracking-widest">{{ editingIndex === -1 ? 'New Event' : 'Edit Event' }}</h2>
                 <div class="space-y-8">
                     <div><label class="premium-label">Title</label><input v-model="newItem.title" class="premium-input" placeholder="景點名稱"></div>
                     <div><label class="premium-label text-center block">Time</label><div class="time-pill"><input v-model="newItem.hour" class="time-input" placeholder="09"><span class="mx-2">:</span><input v-model="newItem.minute" class="time-input" placeholder="00"></div></div>
                     <button @click="addItem" class="btn-gold uppercase tracking-widest">SAVE EVENT</button>
+                    <button v-if="editingIndex !== -1" @click="deleteItem" class="w-full text-red-400 text-[10px] font-black uppercase py-2">Delete Event</button>
                 </div>
             </div>
         </div>
@@ -205,6 +210,6 @@
 
     </div>
 </div>
-<script type="module" src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

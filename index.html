@@ -25,18 +25,10 @@
             <div class="fixed inset-0 z-[1500] bg-[#2C3032] text-white flex flex-col items-center justify-center p-8 overflow-y-auto text-center">
                 <h1 class="text-7xl font-serif mb-2 tracking-widest">栞</h1>
                 <p class="text-[10px] text-theme-accent mb-10 tracking-[0.2em] uppercase">Travel Assistant</p>
-                <div class="flex bg-[#1E2122] p-1 rounded-2xl mb-8 w-full max-w-xs shadow-inner border border-white/5">
-                    <button @click="loginMode = 'quick'" :class="loginMode === 'quick' ? 'bg-[#2C3032] text-white shadow-lg' : 'text-gray-500'" class="flex-1 py-2.5 text-[10px] font-bold rounded-xl uppercase tracking-widest">Existing</button>
-                    <button @click="loginMode = 'new'" :class="loginMode === 'new' ? 'bg-[#2C3032] text-white shadow-lg' : 'text-gray-500'" class="flex-1 py-2.5 text-[10px] font-bold rounded-xl uppercase tracking-widest">New Journey</button>
-                </div>
-                <div class="w-full max-w-xs space-y-4 text-left">
+                <div class="w-full max-w-xs space-y-4">
                     <input v-model.trim="ghToken" type="password" class="login-input" placeholder="GitHub Token">
                     <input v-model.trim="ghRepo" class="login-input" placeholder="Username/Repo">
-                    <div v-if="loginMode === 'new'" class="grid grid-cols-2 gap-4">
-                        <input v-model="destination" class="login-input" placeholder="目的地">
-                        <input v-model="startDate" type="date" class="login-input text-xs">
-                    </div>
-                    <button @click="saveSettings" class="btn-gold !shadow-none mt-4">{{ loginMode === 'quick' ? 'RESUME JOURNEY' : 'START JOURNEY' }}</button>
+                    <button @click="saveSettings" class="btn-gold !shadow-none mt-4">START JOURNEY</button>
                 </div>
             </div>
         </template>
@@ -47,28 +39,18 @@
                     <div>
                         <p class="text-[10px] text-theme-accent font-black tracking-widest uppercase mb-1">Destination</p>
                         <h1 class="text-3xl font-serif font-bold text-theme-main tracking-widest uppercase truncate max-w-[240px]">{{ destination || 'New Trip' }}</h1>
-                        <p class="text-[10px] text-gray-400 mt-1 font-bold">{{ startDate }}</p>
                     </div>
-                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-theme-sub shadow-sm active:scale-90 transition-transform"><i class="fas fa-cog"></i></button>
+                    <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-theme-sub shadow-sm"><i class="fas fa-cog"></i></button>
                 </div>
 
-                <div v-if="currentTab === 'schedule'">
-                    <div class="flex items-center justify-between mb-4 px-1">
-                        <div class="flex gap-2">
-                            <button @click="moveDay(currentDayIndex, -1)" :disabled="currentDayIndex === 0" class="day-ctrl-btn" :class="{'opacity-20': currentDayIndex === 0}"><i class="fas fa-chevron-left"></i></button>
-                            <button @click="moveDay(currentDayIndex, 1)" :disabled="currentDayIndex === days.length - 1" class="day-ctrl-btn" :class="{'opacity-20': currentDayIndex === days.length - 1}"><i class="fas fa-chevron-right"></i></button>
-                        </div>
-                        <button @click="deleteDay(currentDayIndex)" class="text-[9px] font-bold text-red-400 uppercase tracking-widest active:text-red-600">Delete Day</button>
-                    </div>
-                    <div ref="scrollContainer" class="flex gap-3 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth">
-                        <button v-for="(day, index) in days" :key="index" :id="'day-card-' + index" @click="selectDay(index)"
-                                :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'"
-                                class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 shadow-sm border">
-                            <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">Day {{ index + 1 }}</span>
-                            <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
-                        </button>
-                        <button @click="addNewDay" class="flex-shrink-0 w-16 h-20 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 flex items-center justify-center active:bg-gray-100"><i class="fas fa-plus"></i></button>
-                    </div>
+                <div v-if="currentTab === 'schedule'" class="flex gap-3 overflow-x-auto no-scrollbar py-2 px-1 scroll-smooth">
+                    <button v-for="(day, index) in days" :key="index" @click="selectDay(index)"
+                            :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'"
+                            class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 border">
+                        <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">Day {{ index + 1 }}</span>
+                        <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
+                    </button>
+                    <button @click="addNewDay" class="flex-shrink-0 w-16 h-20 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 flex items-center justify-center"><i class="fas fa-plus"></i></button>
                 </div>
             </header>
 
@@ -77,12 +59,8 @@
                     <div v-for="(item, index) in currentDayItems" :key="index" class="schedule-item-card" @click="openEditModal(index)">
                         <div class="w-1 bg-theme-accent rounded-full mr-4"></div>
                         <div class="flex-1 overflow-hidden text-left">
-                            <div class="flex justify-between items-start">
-                                <span class="text-[10px] font-black text-theme-accent tracking-widest">{{ item.time }}</span>
-                                <i class="fas fa-grip-vertical text-gray-200 text-xs"></i>
-                            </div>
+                            <span class="text-[10px] font-black text-theme-accent tracking-widest">{{ item.time }}</span>
                             <h3 class="text-lg font-serif font-black text-theme-main mt-0.5 truncate">{{ item.title }}</h3>
-                            <p v-if="item.address" class="text-[10px] text-gray-400 mt-0.5 truncate italic"><i class="fas fa-map-pin mr-1"></i>{{ item.address }}</p>
                             <div v-if="item.note" class="note-single-line">{{ item.note }}</div>
                         </div>
                     </div>
@@ -95,32 +73,29 @@
                             <div class="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs"><i class="fas fa-users"></i></div>
                         </div>
                         <h2 class="text-5xl font-serif font-bold tracking-tight">¥ {{ totalJPY }}</h2>
-                        <p class="text-xs text-gray-400 mt-2 font-medium">≈ NT$ {{ totalTWD }}</p>
+                        <p class="text-xs text-gray-400 mt-2">≈ NT$ {{ totalTWD }}</p>
                     </div>
 
-                    <div class="flex justify-between items-center mb-6 px-2">
-                        <h4 class="text-[11px] font-black text-gray-400 tracking-[0.15em] uppercase">Member Expenses</h4>
-                        <i class="fas fa-chevron-up text-[9px] text-gray-300"></i>
-                    </div>
+                    <h4 class="text-[11px] font-black text-gray-400 tracking-[0.15em] uppercase mb-6 px-2">Member Expenses</h4>
 
                     <div class="space-y-4">
                         <div v-for="member in members" :key="member" class="member-expense-card">
                             <div class="flex justify-between items-center mb-4">
                                 <div class="flex items-center gap-4">
-                                    <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center font-serif font-black text-gray-400 text-lg">{{ member === '我' ? '我' : '旅' }}</div>
-                                    <span class="font-serif font-black text-xl text-theme-main">{{ member }}</span>
+                                    <div class="w-11 h-11 rounded-full bg-gray-100 flex items-center justify-center font-serif font-black text-gray-400 text-lg">{{ member[0] }}</div>
+                                    <span class="font-serif font-black text-xl">{{ member }}</span>
                                 </div>
                                 <div class="text-right">
-                                    <p class="text-xl font-serif font-black text-theme-main">¥ {{ getMemberTotal(member).jpy }}</p>
+                                    <p class="text-xl font-serif font-black">¥ {{ getMemberTotal(member).jpy }}</p>
                                     <p class="text-[10px] font-bold text-gray-400">≈ NT$ {{ getMemberTotal(member).twd }}</p>
                                 </div>
                             </div>
-                            <div class="w-full h-1.5 bg-gray-50 rounded-full overflow-hidden mb-3">
-                                <div class="h-full bg-theme-accent transition-all duration-500" :style="{ width: getMemberTotal(member).percent + '%' }"></div>
+                            <div class="w-full h-1 bg-gray-50 rounded-full overflow-hidden mb-3">
+                                <div class="h-full bg-theme-accent" :style="{ width: getMemberTotal(member).percent + '%' }"></div>
                             </div>
-                            <div class="flex justify-between text-[10px] font-black tracking-wider">
-                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-theme-main"></span><span class="text-gray-400 uppercase">Shared: ¥{{ getMemberTotal(member).shared }}</span></div>
-                                <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-theme-accent"></span><span class="text-gray-400 uppercase">Private: ¥{{ getMemberTotal(member).private }}</span></div>
+                            <div class="flex justify-between text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                                <span>● Shared: ¥{{ getMemberTotal(member).shared }}</span>
+                                <span>● Private: ¥{{ getMemberTotal(member).private }}</span>
                             </div>
                         </div>
                     </div>
@@ -144,20 +119,8 @@
             </nav>
         </template>
 
-        <div v-if="showSettingsModal" class="modal-mask" @click.self="showSettingsModal = false">
-            <div class="modal-card">
-                <h3 class="font-serif font-black mb-6 text-xl text-center border-b pb-4 uppercase tracking-widest">Settings</h3>
-                <div class="space-y-5 text-left">
-                    <div><label class="premium-label">Destination</label><input v-model="destination" class="premium-input text-center font-bold"></div>
-                    <div><label class="premium-label">Start Date</label><input v-model="startDate" type="date" class="premium-input"></div>
-                    <button @click="saveToGitHub()" class="btn-gold">UPDATE CLOUD</button>
-                    <button @click="logout" class="w-full py-3 text-gray-400 font-bold text-[10px] bg-gray-50 rounded-2xl mt-4">LOGOUT</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="showAddModal" class="modal-mask" @click.self="showAddModal = false">
-            <div v-if="currentTab === 'money'" class="modal-card !p-8 !max-w-[26rem]">
+        <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
+            <div class="modal-card !p-8 !max-w-[26rem]">
                 <h2 class="text-center font-serif font-black text-2xl text-theme-main mb-10 tracking-widest uppercase">New Expense</h2>
                 <div class="space-y-8">
                     <div>
@@ -169,8 +132,8 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div><label class="premium-label">Date</label><input v-model="newItemExpense.date" type="date" class="premium-input text-xs"></div>
-                        <div><label class="premium-label">Time</label><input v-model="newItemExpense.time" type="time" class="premium-input text-xs"></div>
+                        <div class="text-center"><label class="premium-label">Date</label><input v-model="newItemExpense.date" type="date" class="premium-input text-xs text-center"></div>
+                        <div class="text-center"><label class="premium-label">Time</label><input v-model="newItemExpense.time" type="time" class="premium-input text-xs text-center"></div>
                     </div>
                     <div>
                         <label class="premium-label text-center block">付款人 PAYER</label>
@@ -188,19 +151,15 @@
                     <button @click="addExpense" class="btn-gold !rounded-3xl py-5 text-base">CONFIRM</button>
                 </div>
             </div>
+        </div>
 
-            <div v-else class="modal-card !p-8 !max-w-[24rem]">
+        <div v-if="showAddModal && currentTab === 'schedule'" class="modal-mask" @click.self="showAddModal = false">
+            <div class="modal-card !p-8 !max-w-[24rem]">
                 <h2 class="text-center font-serif font-black text-2xl text-theme-main mb-10 uppercase tracking-widest">{{ editingIndex === -1 ? 'New Event' : 'Edit Event' }}</h2>
-                <div class="space-y-8 text-left">
-                    <div><label class="premium-label uppercase tracking-widest">TITLE</label><input v-model="newItem.title" class="premium-input" placeholder="景點名稱"></div>
-                    <div class="text-center">
-                        <label class="premium-label uppercase tracking-widest">TIME</label>
-                        <div class="time-pill"><input v-model="newItem.hour" class="time-input" maxlength="2" placeholder="09"><span class="text-gray-300 font-bold mx-2">:</span><input v-model="newItem.minute" class="time-input" maxlength="2" placeholder="00"></div>
-                    </div>
-                    <div><label class="premium-label text-center block uppercase tracking-widest">LINK / ADDRESS</label><input v-model="newItem.address" class="premium-input" placeholder="地址或網址"></div>
-                    <div><label class="premium-label text-center block uppercase tracking-widest">NOTE</label><textarea v-model="newItem.note" class="premium-input h-32 resize-none" placeholder="寫下備註..."></textarea></div>
+                <div class="space-y-8">
+                    <div><label class="premium-label">Title</label><input v-model="newItem.title" class="premium-input" placeholder="景點名稱"></div>
+                    <div><label class="premium-label">Time</label><div class="time-pill"><input v-model="newItem.hour" class="time-input" placeholder="09"><span class="mx-2">:</span><input v-model="newItem.minute" class="time-input" placeholder="00"></div></div>
                     <button @click="addItem" class="btn-gold uppercase tracking-widest">SAVE EVENT</button>
-                    <button v-if="editingIndex !== -1" @click="deleteItem" class="text-[10px] font-bold text-red-400 py-2 uppercase tracking-widest text-center w-full">Delete Event</button>
                 </div>
             </div>
         </div>

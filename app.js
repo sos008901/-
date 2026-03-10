@@ -26,7 +26,7 @@ createApp({
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
         const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 3000); };
 
-        // --- 核心連線邏輯：加上 Cache-Control 確保抓到最新 SHA ---
+        // --- 核心：強化的雲端讀取與 SHA 獲取 ---
         const loadFromGitHub = async () => {
             const token = ghToken.value.trim();
             const repo = ghRepo.value.trim();
@@ -34,20 +34,21 @@ createApp({
 
             isSyncing.value = true;
             try {
+                // 加入亂數避開快取，確保拿到最新 SHA
                 const res = await fetch(`https://api.github.com/repos/${repo}/contents/data.json?t=${Date.now()}`, { 
                     headers: { 'Authorization': `token ${token}`, 'Cache-Control': 'no-cache' } 
                 });
                 
                 if (res.status === 401) return "AUTH_FAILED";
-                if (res.status === 404) return "FILE_NOT_FOUND";
+                if (res.status === 404) return "NOT_FOUND";
                 
                 if (res.ok) {
                     const data = await res.json(); 
-                    dataSha.value = data.sha; // 抓到身份證 SHA
+                    dataSha.value = data.sha; // 抓到最新的 SHA 防 409
                     const content = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                    days.value = content.days || [{ items: [] }];
-                    destination.value = content.destination || '';
-                    startDate.value = content.startDate || '';
+                    if (content.days) days.value = content.days;
+                    if (content.destination) destination.value = content.destination;
+                    if (content.startDate) startDate.value = content.startDate;
                     return "SUCCESS";
                 }
                 return `ERR_${res.status}`;
@@ -55,15 +56,14 @@ createApp({
             finally { isSyncing.value = false; }
         };
 
-        // --- 儲存邏輯：修復 409 Conflict ---
         const saveToGitHub = async () => {
             const token = ghToken.value.trim();
             const repo = ghRepo.value.trim();
             if (!token || !repo) return;
 
             isSyncing.value = true;
-
-            // 重要：儲存前先刷新一次 SHA，避免多裝置衝突 (409)
+            
+            // 重要：儲存前先刷新一次 SHA，徹底解決 409 Conflict
             await loadFromGitHub();
 
             const contentObj = { days: days.value, destination: destination.value, startDate: startDate.value, updatedAt: new Date().toISOString() };
@@ -71,50 +71,47 @@ createApp({
             
             try {
                 const res = await fetch(`https://api.github.com/repos/${repo}/contents/data.json`, { 
-                    method: 'PUT', 
-                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ 
-                        message: "Cloud Sync", 
-                        content: contentBase64, 
-                        sha: dataSha.value // 帶著最新抓到的 SHA 去儲存
-                    }) 
+                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value }) 
                 });
                 
                 if (res.ok) { 
                     const resData = await res.json(); 
                     dataSha.value = resData.content.sha; 
                     showToast("同步成功"); 
-                } else if (res.status === 409) {
-                    showToast("同步衝突 (409)，請重新整理頁面後再試");
                 } else {
-                    showToast(`同步失敗 (${res.status})，請確認 Token 權限`);
+                    showToast(`同步失敗 (${res.status})`);
                 }
             } catch (e) { showToast("網路異常"); }
             isSyncing.value = false;
         };
 
         const saveSettings = async () => {
-            if (!ghToken.value || !ghRepo.value) return showToast("請完整填寫連線資訊");
-            ghToken.value = ghToken.value.trim();
-            ghRepo.value = ghRepo.value.trim();
-            localStorage.setItem('gh_token', ghToken.value);
-            localStorage.setItem('gh_repo', ghRepo.value);
+            const tokenInput = ghToken.value.trim();
+            const repoInput = ghRepo.value.trim();
+            if (!tokenInput || !repoInput) return showToast("請完整填寫連線資訊");
+            
+            ghToken.value = tokenInput;
+            ghRepo.value = repoInput;
+            localStorage.setItem('gh_token', tokenInput);
+            localStorage.setItem('gh_repo', repoInput);
             
             const result = await loadFromGitHub();
             
             if (loginMode.value === 'quick') {
                 if (result === "SUCCESS") { isInitialized.value = true; showToast("歡迎回來"); }
-                else if (result === "FILE_NOT_FOUND") { showToast("找不到雲端檔案，請使用 New Journey 建立"); }
-                else { showToast(`連線失敗 (${result})`); }
+                else if (result === "NOT_FOUND") { showToast("雲端無檔案，請改用 New Journey 模式"); }
+                else if (result === "AUTH_FAILED") { showToast("Token 無效，請檢查權限"); }
+                else { showToast(`連線失敗: ${result}`); }
             } else {
                 // New Journey 模式
                 isInitialized.value = true;
-                // 如果檔案已存在，loadFromGitHub 已經幫我們拿到了 SHA，這時 saveToGitHub 就能順利覆蓋而不報 409
+                // 不論雲端有沒有，都直接嘗試寫入（loadFromGitHub 已經拿到了 SHA 如果有的話）
                 await saveToGitHub();
             }
         };
 
-        // --- 其餘拖移與操作邏輯維持不變 ---
+        // --- 手機手柄拖移邏輯 ---
         let startY = 0;
         const handleTouchStart = (e, index) => { dragSourceIndex.value = index; startY = e.touches[0].clientY; };
         const handleTouchMove = (e) => {
@@ -133,6 +130,7 @@ createApp({
             }
         };
         const handleTouchEnd = () => { if (dragSourceIndex.value !== -1) { dragSourceIndex.value = -1; saveToGitHub(); } };
+
         const addItem = () => {
             if (!newItem.value.title) return;
             const eventData = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title, address: newItem.value.address, note: newItem.value.note };
@@ -141,23 +139,25 @@ createApp({
             newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' };
             editingIndex.value = -1; showAddModal.value = false; saveToGitHub();
         };
+
         const scrollToActive = () => { nextTick(() => { const container = scrollContainer.value; const activeCard = document.getElementById(`day-card-${currentDayIndex.value}`); if (container && activeCard) { container.scrollTo({ left: activeCard.offsetLeft - (container.offsetWidth / 2) + (activeCard.offsetWidth / 2), behavior: 'smooth' }); } }); };
+
         onMounted(() => { if (isInitialized.value) loadFromGitHub(); });
 
         return {
             isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,
             ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem, editingIndex, dragSourceIndex,
             loginMode, saveSettings, addItem,
-            deleteItem: () => { days.value[currentDayIndex.value].items.splice(editingIndex.value, 1); showAddModal.value = false; saveToGitHub(); },
+            deleteItem: () => { if(confirm("確定刪除行程？")){days.value[currentDayIndex.value].items.splice(editingIndex.value, 1); showAddModal.value = false; saveToGitHub();} },
             openEditModal: (i) => { editingIndex.value = i; const item = days.value[currentDayIndex.value].items[i]; const [h, m] = item.time.split(':'); newItem.value = { hour: h, minute: m, title: item.title, address: item.address || '', note: item.note || '' }; showAddModal.value = true; },
             addNewDay: () => { days.value.push({ items: [] }); currentDayIndex.value = days.value.length - 1; saveToGitHub(); scrollToActive(); },
             getDayInfo: (i) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + i); return { date: `${d.getMonth() + 1}/${d.getDate()}` }; },
             selectDay: (i) => { currentDayIndex.value = i; scrollToActive(); },
-            moveDay: (i, d) => { const n = i + d; if (n < 0 || n >= days.value.length) return; const a = [...days.value]; [a[i], a[n]] = [a[n], a[i]]; days.value = a; currentDayIndex.value = n; saveToGitHub(); scrollToActive(); },
+            moveDay: (i, d) => { const n = i + d; if (n < 0 || n >= days.length) return; const a = [...days.value]; [a[i], a[n]] = [a[n], a[i]]; days.value = a; currentDayIndex.value = n; saveToGitHub(); scrollToActive(); },
             deleteDay: (i) => { if (days.value.length <= 1) return; if (confirm("Delete Day?")) { days.value.splice(i, 1); currentDayIndex.value = 0; saveToGitHub(); } },
             handleTouchStart, handleTouchMove, handleTouchEnd,
             onFabClick: () => { editingIndex.value = -1; newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' }; showAddModal.value = true; },
-            logout: () => { if(confirm("確定登出？")){localStorage.clear(); location.reload();} },
+            logout: () => { if(confirm("確定登出？這會清除本地緩存")){localStorage.clear(); location.reload();} },
             saveToGitHub
         };
     }

@@ -13,13 +13,11 @@ createApp({
         const ghRepo = ref(localStorage.getItem('gh_repo') || '');
         const dataSha = ref(''); 
         const isInitialized = ref(!!(localStorage.getItem('gh_token') && localStorage.getItem('gh_repo')));
-        
         const isSyncing = ref(false);
         const showSettingsModal = ref(false);
         const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
-        // 狀態管理：編輯與拖移
         const editingIndex = ref(-1); 
         const dragSourceIndex = ref(-1); 
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
@@ -66,7 +64,7 @@ createApp({
             isSyncing.value = false;
         };
 
-        // --- 手機觸控拖移邏輯 ---
+        // --- 修復：支援手柄觸控拖移邏輯 ---
         let startY = 0;
         const handleTouchStart = (e, index) => { dragSourceIndex.value = index; startY = e.touches[0].clientY; };
         const handleTouchMove = (e) => {
@@ -86,7 +84,6 @@ createApp({
         };
         const handleTouchEnd = () => { if (dragSourceIndex.value !== -1) { dragSourceIndex.value = -1; saveToGitHub(); } };
 
-        // --- 行程與天數操作 ---
         const addItem = () => {
             if (!newItem.value.title) return;
             const eventData = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title, address: newItem.value.address, note: newItem.value.note };

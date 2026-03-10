@@ -19,11 +19,17 @@ createApp({
         const showAddModal = ref(false);
         const toast = ref({ show: false, message: '' });
 
-        // 截圖要求的進階資料結構
+        // 編輯狀態
+        const editingIndex = ref(-1); 
+        const dragSourceIndex = ref(-1); 
         const newItem = ref({ hour: '09', minute: '00', title: '', address: '', note: '' });
 
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
-        const showToast = (msg) => { toast.value = { show: true, message: msg }; setTimeout(() => toast.value.show = false, 2500); };
+        
+        const showToast = (msg) => { 
+            toast.value = { show: true, message: msg }; 
+            setTimeout(() => toast.value.show = false, 2500); 
+        };
 
         const scrollToActive = () => {
             nextTick(() => {
@@ -34,6 +40,18 @@ createApp({
                     container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                 }
             });
+        };
+
+        const selectDay = (index) => {
+            currentDayIndex.value = index;
+            scrollToActive();
+        };
+
+        const getDayInfo = (index) => {
+            if (!startDate.value) return { date: '-' };
+            const date = new Date(startDate.value);
+            date.setDate(date.getDate() + index);
+            return { date: `${date.getMonth() + 1}/${date.getDate()}` };
         };
 
         const loadFromGitHub = async () => {
@@ -67,7 +85,7 @@ createApp({
                 const res = await fetch(`https://api.github.com/repos/${ghRepo.value}/contents/data.json`, {
                     method: 'PUT',
                     headers: { 'Authorization': `token ${ghToken.value}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Sync", content: contentBase64, sha: dataSha.value })
+                    body: JSON.stringify({ message: "Journey Sync", content: contentBase64, sha: dataSha.value })
                 });
                 if (res.ok) {
                     const resData = await res.json();
@@ -78,19 +96,70 @@ createApp({
             isSyncing.value = false;
         };
 
+        const saveSettings = async () => {
+            localStorage.setItem('gh_token', ghToken.value);
+            localStorage.setItem('gh_repo', ghRepo.value);
+            isInitialized.value = true;
+            showSettingsModal.value = false;
+            await loadFromGitHub();
+            if (!dataSha.value) saveToGitHub();
+        };
+
+        // --- 行程操作 ---
+        const openEditModal = (index) => {
+            editingIndex.value = index;
+            const item = days.value[currentDayIndex.value].items[index];
+            const [h, m] = item.time.split(':');
+            newItem.value = { hour: h, minute: m, title: item.title, address: item.address || '', note: item.note || '' };
+            showAddModal.value = true;
+        };
+
         const addItem = () => {
             if (!newItem.value.title) return;
-            days.value[currentDayIndex.value].items.push({
+            const eventData = {
                 time: `${newItem.value.hour}:${newItem.value.minute}`,
                 title: newItem.value.title,
                 address: newItem.value.address,
                 note: newItem.value.note
-            });
+            };
+            
+            if (editingIndex.value === -1) {
+                days.value[currentDayIndex.value].items.push(eventData);
+            } else {
+                days.value[currentDayIndex.value].items[editingIndex.value] = eventData;
+            }
+            
             newItem.value = { hour: '09', minute: '00', title: '', address: '', note: '' };
+            editingIndex.value = -1;
             showAddModal.value = false;
             saveToGitHub();
         };
 
+        const deleteItem = () => {
+            if (editingIndex.value === -1) return;
+            if (confirm("確定要刪除這個行程嗎？")) {
+                days.value[currentDayIndex.value].items.splice(editingIndex.value, 1);
+                showAddModal.value = false;
+                editingIndex.value = -1;
+                saveToGitHub();
+            }
+        };
+
+        // --- 拖移排序邏輯 ---
+        const handleDragStart = (index) => {
+            dragSourceIndex.value = index;
+        };
+
+        const handleDrop = (targetIndex) => {
+            if (dragSourceIndex.value === -1 || dragSourceIndex.value === targetIndex) return;
+            const items = days.value[currentDayIndex.value].items;
+            const [movedItem] = items.splice(dragSourceIndex.value, 1);
+            items.splice(targetIndex, 0, movedItem);
+            dragSourceIndex.value = -1;
+            saveToGitHub();
+        };
+
+        // --- 天數操作 ---
         const addNewDay = () => {
             days.value.push({ items: [] });
             currentDayIndex.value = days.value.length - 1;
@@ -122,23 +191,10 @@ createApp({
 
         return {
             isInitialized, currentTab, days, currentDayIndex, currentDayItems, destination, startDate, scrollContainer,
-            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem,
-            saveSettings: async () => {
-                localStorage.setItem('gh_token', ghToken.value);
-                localStorage.setItem('gh_repo', ghRepo.value);
-                isInitialized.value = true;
-                showSettingsModal.value = false;
-                await loadFromGitHub();
-                if (!dataSha.value) saveToGitHub();
-            },
-            addItem, addNewDay, moveDay, deleteDay, selectDay: (i) => { currentDayIndex.value = i; scrollToActive(); },
-            getDayInfo: (i) => {
-                if (!startDate.value) return { date: '-' };
-                const d = new Date(startDate.value);
-                d.setDate(d.getDate() + i);
-                return { date: `${d.getMonth() + 1}/${d.getDate()}` };
-            },
-            onFabClick: () => showAddModal.value = true,
+            ghToken, ghRepo, isSyncing, showSettingsModal, showAddModal, toast, newItem, editingIndex,
+            saveSettings, addItem, deleteItem, openEditModal, addNewDay, getDayInfo, selectDay, moveDay, deleteDay, 
+            handleDragStart, handleDrop,
+            onFabClick: () => { editingIndex.value = -1; showAddModal.value = true; },
             logout: () => { localStorage.clear(); location.reload(); }
         };
     }

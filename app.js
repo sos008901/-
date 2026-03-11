@@ -23,11 +23,16 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
+            const editingExpenseIndex = ref(-1); // 新增：追蹤正在編輯的帳目索引
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
-            const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同', splitWith: [] });
+            
+            // 修改：加入 note 欄位
+            const newItemExpense = ref({ 
+                title: '', amount: 0, date: '', time: '', 
+                payer: '', type: '共同', splitWith: [], note: '' 
+            });
 
-            // --- 萬能解碼函式：防範中文字報錯 ---
             const safeB64Decode = (str) => {
                 try {
                     const bin = window.atob(str.replace(/\s/g, ''));
@@ -48,7 +53,6 @@
                 return window.btoa(bin);
             };
 
-            // --- 結算與總額計算 ---
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
@@ -94,7 +98,6 @@
 
             const currentDayItems = computed(() => (days.value[currentDayIndex.value]?.items || []));
 
-            // --- 方法集 ---
             const showToast = (m) => { toast.value = { show: true, message: m }; setTimeout(() => toast.value.show = false, 2000); };
 
             const loadFromGitHub = async () => {
@@ -150,12 +153,18 @@
             return {
                 isAppReady, isInitialized, currentTab, days, expenses, members, currentDayIndex, currentDayItems, destination, startDate,
                 ghToken, ghRepo, isSyncing, showAddModal, showSettingsModal, showTravelerModal, toast, 
-                newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses,
+                newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses, editingExpenseIndex,
                 onFabClick: () => {
                     const n = new Date();
                     if (currentTab.value === 'money') {
-                        newItemExpense.value = { title: '', amount: 0, date: n.toISOString().split('T')[0], time: n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: members.value[0], type: '共同', splitWith: [...members.value] };
+                        editingExpenseIndex.value = -1;
+                        newItemExpense.value = { title: '', amount: 0, date: n.toISOString().split('T')[0], time: n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: members.value[0], type: '共同', splitWith: [...members.value], note: '' };
                     } else { newItem.value = { hour: '09', minute: '00', title: '' }; editingIndex.value = -1; }
+                    showAddModal.value = true;
+                },
+                openEditExpenseModal: (exp) => {
+                    editingExpenseIndex.value = expenses.value.indexOf(exp);
+                    newItemExpense.value = { ...exp };
                     showAddModal.value = true;
                 },
                 toggleSplitMember: (name) => {
@@ -167,8 +176,23 @@
                 addTraveler: () => tempMembers.value.push(''),
                 removeTraveler: (i) => { if(tempMembers.value.length > 1) tempMembers.value.splice(i, 1); },
                 saveTravelers: () => { members.value = tempMembers.value.filter(n => n.trim() !== ''); showTravelerModal.value = false; saveToGitHub(); },
-                addExpense: () => { if(!newItemExpense.value.title) return; expenses.value.push({ ...newItemExpense.value }); showAddModal.value = false; saveToGitHub(); },
-                confirmDeleteExpense: (exp) => { if(confirm("Delete this?")) { expenses.value = expenses.value.filter(e => e !== exp); saveToGitHub(); } },
+                addExpense: () => { 
+                    if(!newItemExpense.value.title) return; 
+                    if (editingExpenseIndex.value === -1) {
+                        expenses.value.push({ ...newItemExpense.value });
+                    } else {
+                        expenses.value[editingExpenseIndex.value] = { ...newItemExpense.value };
+                    }
+                    showAddModal.value = false; 
+                    saveToGitHub(); 
+                },
+                confirmDeleteExpense: (exp) => { 
+                    if(confirm("確定要刪除這筆開銷嗎？")) { 
+                        expenses.value = expenses.value.filter(e => e !== exp); 
+                        showAddModal.value = false;
+                        saveToGitHub(); 
+                    } 
+                },
                 addItem: () => { 
                     const it = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title };
                     if (editingIndex.value === -1) days.value[currentDayIndex.value].items.push(it);

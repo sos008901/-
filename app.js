@@ -720,22 +720,22 @@ match /{document=**} {
             showToast('Travelers Updated');
         };
 
-        // PDF 匯出邏輯：加入成員總花費與依日期排序明細
+        // PDF 匯出邏輯：行程與記帳強制分頁
         const exportPDF = () => {
             showToast('Generating PDF...');
             const element = document.createElement('div');
-            element.style.padding = '30px';
+            element.style.padding = '20px';
             element.style.fontFamily = '"Noto Serif TC", "Noto Sans TC", sans-serif';
             element.style.color = '#2C3032';
 
+            // --- 第一頁：行程 (Schedule) ---
             let html = `
                 <div style="text-align:center; margin-bottom: 30px;">
                     <h1 style="font-size:32px; font-weight:bold; margin-bottom:5px;">${destination.value}</h1>
-                    <p style="font-size:14px; color:#5F6368; letter-spacing:2px;">Trip Record & Expenses</p>
+                    <p style="font-size:14px; color:#5F6368; letter-spacing:2px;">Trip Schedule</p>
                 </div>
             `;
 
-            // Schedule Section
             html += `<h2 style="font-size:20px; border-bottom: 2px solid #C5A059; padding-bottom: 8px; margin-top:20px;">Schedule</h2>`;
             days.value.forEach((day, idx) => {
                 html += `<h3 style="font-size:16px; margin-top: 20px; color: #3E4E50;">Day ${idx + 1} - ${getDayDate(idx)}</h3>`;
@@ -755,8 +755,17 @@ match /{document=**} {
                 }
             });
 
-            // Budget Section
-            html += `<h2 style="font-size:20px; border-bottom: 2px solid #C5A059; padding-bottom: 8px; margin-top: 40px;">Budget Overview</h2>`;
+            // --- 第二頁：記帳 (Budget) 強制換頁 ---
+            html += `
+                <div class="html2pdf__page-break"></div>
+                <div style="page-break-before: always; padding-top: 20px;">
+                    <div style="text-align:center; margin-bottom: 30px;">
+                        <h1 style="font-size:32px; font-weight:bold; margin-bottom:5px;">${destination.value}</h1>
+                        <p style="font-size:14px; color:#5F6368; letter-spacing:2px;">Trip Expenses & Budget</p>
+                    </div>
+            `;
+
+            html += `<h2 style="font-size:20px; border-bottom: 2px solid #C5A059; padding-bottom: 8px;">Budget Overview</h2>`;
             html += `<p style="font-size: 16px; font-weight:bold;">Grand Total: ${currencySymbol.value} ${totalExpense.value.toLocaleString()} <span style="font-size:12px; color:#9CA3AF; font-weight:normal;">(≈ NT$ ${toTWD(totalExpense.value)})</span></p>`;
             
             // 1. 成員花費總覽
@@ -797,6 +806,8 @@ match /{document=**} {
                 html += `<p style="font-size: 13px; color: #9CA3AF; margin-top: 10px;">No expense records.</p>`;
             }
 
+            html += `</div>`; // 結束記帳頁面區塊
+
             element.innerHTML = html;
 
             const opt = {
@@ -804,7 +815,8 @@ match /{document=**} {
                 filename:     `${destination.value || 'Trip'}_Record.pdf`,
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['css', 'legacy'] } // 啟用 css 分頁模式
             };
 
             html2pdf().set(opt).from(element).save().then(() => {

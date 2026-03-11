@@ -12,6 +12,9 @@
             const destination = ref('');
             const startDate = ref('');
             
+            // --- 新增：紀錄收折狀態的物件 ---
+            const collapsedDates = ref({}); 
+
             const ghToken = ref(localStorage.getItem('gh_token') || '');
             const ghRepo = ref(localStorage.getItem('gh_repo') || '');
             const dataSha = ref(''); 
@@ -23,15 +26,10 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
-            const editingExpenseIndex = ref(-1); // 新增：追蹤正在編輯的帳目索引
+            const editingExpenseIndex = ref(-1);
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
-            
-            // 修改：加入 note 欄位
-            const newItemExpense = ref({ 
-                title: '', amount: 0, date: '', time: '', 
-                payer: '', type: '共同', splitWith: [], note: '' 
-            });
+            const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同', splitWith: [], note: '' });
 
             const safeB64Decode = (str) => {
                 try {
@@ -39,10 +37,7 @@
                     const bytes = new Uint8Array(bin.length);
                     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
                     return JSON.parse(new TextDecoder().decode(bytes));
-                } catch (e) {
-                    console.error("Decode Failed", e);
-                    return null;
-                }
+                } catch (e) { console.error("Decode Failed", e); return null; }
             };
 
             const safeB64Encode = (obj) => {
@@ -69,7 +64,6 @@
                     const amt = Number(e.amount) || 0;
                     const payer = e.payer;
                     const splitWith = (e.splitWith && e.splitWith.length > 0) ? e.splitWith : members.value;
-                    
                     if (e.type === '共同') {
                         const per = amt / splitWith.length;
                         splitWith.forEach(m => { if (m !== payer) { balances[m] -= per; balances[payer] += per; } });
@@ -97,7 +91,6 @@
             });
 
             const currentDayItems = computed(() => (days.value[currentDayIndex.value]?.items || []));
-
             const showToast = (m) => { toast.value = { show: true, message: m }; setTimeout(() => toast.value.show = false, 2000); };
 
             const loadFromGitHub = async () => {
@@ -130,14 +123,11 @@
                         headers: { 'Authorization': `token ${ghToken.value.trim()}` }
                     });
                     if (check.ok) { const d = await check.json(); dataSha.value = d.sha; }
-
                     const dataObj = { days: days.value, expenses: expenses.value, members: members.value, destination: destination.value, startDate: startDate.value };
-                    const base64 = safeB64Encode(dataObj);
-                    
                     const res = await fetch(`https://api.github.com/repos/${ghRepo.value.trim()}/contents/data.json`, {
                         method: 'PUT',
                         headers: { 'Authorization': `token ${ghToken.value.trim()}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: "Sync", content: base64, sha: dataSha.value || undefined })
+                        body: JSON.stringify({ message: "Sync", content: safeB64Encode(dataObj), sha: dataSha.value || undefined })
                     });
                     if (res.ok) { const d = await res.json(); dataSha.value = d.content.sha; showToast("Synced"); }
                 } catch (e) { showToast("Sync Error"); }
@@ -145,7 +135,6 @@
             };
 
             onMounted(async () => {
-                setTimeout(() => isAppReady.value = true, 3000);
                 if (isInitialized.value) await loadFromGitHub();
                 isAppReady.value = true;
             });
@@ -154,6 +143,10 @@
                 isAppReady, isInitialized, currentTab, days, expenses, members, currentDayIndex, currentDayItems, destination, startDate,
                 ghToken, ghRepo, isSyncing, showAddModal, showSettingsModal, showTravelerModal, toast, 
                 newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses, editingExpenseIndex,
+                collapsedDates, // 暴露給模板
+                toggleDateCollapse: (date) => {
+                    collapsedDates.value[date] = !collapsedDates.value[date];
+                },
                 onFabClick: () => {
                     const n = new Date();
                     if (currentTab.value === 'money') {
@@ -178,20 +171,12 @@
                 saveTravelers: () => { members.value = tempMembers.value.filter(n => n.trim() !== ''); showTravelerModal.value = false; saveToGitHub(); },
                 addExpense: () => { 
                     if(!newItemExpense.value.title) return; 
-                    if (editingExpenseIndex.value === -1) {
-                        expenses.value.push({ ...newItemExpense.value });
-                    } else {
-                        expenses.value[editingExpenseIndex.value] = { ...newItemExpense.value };
-                    }
-                    showAddModal.value = false; 
-                    saveToGitHub(); 
+                    if (editingExpenseIndex.value === -1) expenses.value.push({ ...newItemExpense.value });
+                    else expenses.value[editingExpenseIndex.value] = { ...newItemExpense.value };
+                    showAddModal.value = false; saveToGitHub(); 
                 },
                 confirmDeleteExpense: (exp) => { 
-                    if(confirm("確定要刪除這筆開銷嗎？")) { 
-                        expenses.value = expenses.value.filter(e => e !== exp); 
-                        showAddModal.value = false;
-                        saveToGitHub(); 
-                    } 
+                    if(confirm("確定刪除？")) { expenses.value = expenses.value.filter(e => e !== exp); showAddModal.value = false; saveToGitHub(); } 
                 },
                 addItem: () => { 
                     const it = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title };
@@ -201,10 +186,7 @@
                 },
                 deleteItem: () => { days.value[currentDayIndex.value].items.splice(editingIndex.value, 1); showAddModal.value = false; saveToGitHub(); },
                 openEditModal: (i) => { editingIndex.value = i; const it = days.value[currentDayIndex.value].items[i]; const [h, m] = it.time.split(':'); newItem.value = { hour: h, minute: m, title: it.title }; showAddModal.value = true; },
-                saveSettings: () => { 
-                    localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); 
-                    isInitialized.value = true; loadFromGitHub(); 
-                },
+                saveSettings: () => { localStorage.setItem('gh_token', ghToken.value); localStorage.setItem('gh_repo', ghRepo.value); isInitialized.value = true; loadFromGitHub(); },
                 selectDay: (i) => currentDayIndex.value = i,
                 addNewDay: () => { days.value.push({ items: [] }); saveToGitHub(); },
                 getDayInfo: (idx) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + idx); return { date: `${d.getMonth()+1}/${d.getDate()}` }; },

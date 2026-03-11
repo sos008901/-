@@ -49,30 +49,21 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
-            // --- 重要修改：計算每個人真正的「消費額」 ---
             const getMemberStats = (name) => {
                 let shared = 0;
                 let privateVal = 0;
-                
                 (expenses.value || []).forEach(e => {
                     const amt = Number(e.amount) || 0;
                     const splitWith = (e.splitWith && e.splitWith.length > 0) ? e.splitWith : members.value;
-                    
                     if (e.type === '共同') {
-                        if (splitWith.includes(name)) {
-                            shared += amt / splitWith.length;
-                        }
+                        if (splitWith.includes(name)) shared += amt / splitWith.length;
                     } else if (e.type === '自費') {
                         if (e.payer === name) privateVal += amt;
                     } else if (e.type === '代墊') {
-                        // 代墊由受益人平分
                         const beneficiaries = splitWith.filter(m => m !== e.payer);
-                        if (beneficiaries.includes(name)) {
-                            privateVal += amt / beneficiaries.length;
-                        }
+                        if (beneficiaries.includes(name)) privateVal += amt / beneficiaries.length;
                     }
                 });
-
                 const total = shared + privateVal;
                 return {
                     total: Math.round(total),
@@ -176,7 +167,10 @@
                     if (currentTab.value === 'money') {
                         editingExpenseIndex.value = -1;
                         newItemExpense.value = { title: '', amount: 0, date: n.toISOString().split('T')[0], time: n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: members.value[0], type: '共同', splitWith: [...members.value], note: '' };
-                    } else { newItem.value = { hour: '09', minute: '00', title: '' }; editingIndex.value = -1; }
+                    } else { 
+                        newItem.value = { hour: '09', minute: '00', title: '' }; 
+                        editingIndex.value = -1; 
+                    }
                     showAddModal.value = true;
                 },
                 openEditExpenseModal: (exp) => {
@@ -200,7 +194,11 @@
                     showAddModal.value = false; saveToGitHub(); 
                 },
                 confirmDeleteExpense: (exp) => { 
-                    if(confirm("確定刪除？")) { expenses.value = expenses.value.filter(e => e !== exp); showAddModal.value = false; saveToGitHub(); } 
+                    if(confirm("確定刪除？")) { 
+                        expenses.value = expenses.value.filter(e => e !== exp); 
+                        showAddModal.value = false; 
+                        saveToGitHub(); 
+                    } 
                 },
                 addItem: () => { 
                     const it = { time: `${newItem.value.hour}:${newItem.value.minute}`, title: newItem.value.title };
@@ -216,7 +214,7 @@
                 getDayInfo: (idx) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + idx); return { date: `${d.getMonth()+1}/${d.getDate()}` }; },
                 formatDisplayDate: (str) => { const d = new Date(str); const ws=['週日','週一','週二','週三','週四','週五','週六']; return `${d.getMonth()+1}月${d.getDate()}日 ${ws[d.getDay()]}`; },
                 logout: () => { localStorage.clear(); location.reload(); },
-                getMemberStats // 暴露新函式
+                getMemberStats
             };
         }
     }).mount('#app');

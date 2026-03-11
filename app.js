@@ -24,7 +24,7 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
-            const editingExpenseIndex = ref(-1);
+            const editingExpenseIndex = ref(-1); // 追蹤正在編輯的索引
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
             const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同', splitWith: [], note: '' });
@@ -49,6 +49,7 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
+            // 計算個人消費統計（包含共同分攤、個人自費、代墊）
             const getMemberStats = (name) => {
                 let shared = 0;
                 let privateVal = 0;
@@ -102,7 +103,7 @@
                 (expenses.value || []).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
                     if (!g[e.date]) g[e.date] = { items: [], total: 0 };
                     g[e.date].items.push(e);
-                    g[e.date].total += (Number(e.amount) || 0);
+                    g[date].total += (Number(e.amount) || 0);
                 });
                 return g;
             });
@@ -152,7 +153,6 @@
             };
 
             onMounted(async () => {
-                // 安全機制：不論讀取成功與否，3秒後一定關閉載入畫面
                 setTimeout(() => { isAppReady.value = true; }, 3000);
                 if (isInitialized.value) await loadFromGitHub();
                 isAppReady.value = true;
@@ -196,7 +196,7 @@
                     showAddModal.value = false; saveToGitHub(); 
                 },
                 confirmDeleteExpense: (exp) => { 
-                    if(confirm("確定刪除？")) { 
+                    if(confirm("確定刪除這筆開銷？")) { 
                         expenses.value = expenses.value.filter(e => e !== exp); 
                         showAddModal.value = false; 
                         saveToGitHub(); 

@@ -5,6 +5,7 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
 [v-cloak] { display: none !important; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 
+/* 固定容器高度並禁止整體滑動，確保只有中間內容區會動 */
 #app-container { 
     max-width: 480px; 
     margin: 0 auto; 
@@ -17,24 +18,30 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
     box-shadow: 0 0 50px rgba(0,0,0,0.1); 
 }
 
-/* 確保 Header 頂部在有瀏海的手機上顯示正常 */
+/* 頂部固定 Header */
 header {
     padding-top: calc(env(safe-area-inset-top) + 20px) !important;
+    flex-shrink: 0;
+    z-index: 100;
 }
 
-/* 調整主內容區域的間距 */
+/* 核心修改：設定中間區域獨立滑動 */
 main {
-    padding-bottom: 120px !important; /* 增加底部 Padding，確保內容不會被選單擋住 */
+    flex: 1;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch; /* 讓手機滑動手感更順暢 */
+    padding-bottom: 160px !important; /* 增加底部緩衝，避免內容被選單遮住 */
+    background: transparent;
 }
 
 .btn-base { display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; cursor: pointer; }
 .btn-base:active { transform: scale(0.95); }
 .icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid #E0E0E0; background: rgba(255,255,255,0.8); color: #5F6368; }
 
-/* 提升懸浮按鈕的高度 */
+/* 懸浮按鈕固定在選單上方 */
 .fab-btn { 
     position: absolute; 
-    bottom: calc(110px + env(safe-area-inset-bottom)); 
+    bottom: calc(130px + env(safe-area-inset-bottom)); 
     right: 1.5rem; 
     width: 3.5rem; 
     height: 3.5rem; 
@@ -51,17 +58,20 @@ main {
 }
 .fab-btn:active { transform: scale(0.9) rotate(90deg); }
 
-/* 導覽列優化：進一步拉大底部間距，強制將選單壓回最下方 */
+/* 底部導覽列優化：實現對稱間距與位置固定 */
 nav.glass-panel { 
-    background: rgba(244, 242, 238, 0.95); 
+    background: rgba(244, 242, 238, 0.98); 
     backdrop-filter: blur(20px); 
     -webkit-backdrop-filter: blur(20px); 
-    border-top: 1px solid rgba(0,0,0,0.05);
-    padding-bottom: calc(env(safe-area-inset-bottom) + 5px) !important; /* 修正底部安全邊距 */
+    border-top: 1px solid #E0E0E0;
+    /* 核心修改：讓區分線到按鈕的距離 (padding-top) 與按鈕到螢幕底部的距離相等 */
+    padding-top: calc(env(safe-area-inset-bottom) + 15px) !important;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 15px) !important; 
     height: auto !important;
     position: absolute;
     bottom: 0;
     width: 100%;
+    z-index: 1000;
 }
 
 .input-rounded { 
@@ -81,7 +91,7 @@ nav.glass-panel {
 .input-rounded:focus { background-color: #FFFFFF; border-color: #C5A059; box-shadow: 0 4px 15px rgba(197, 160, 89, 0.1); }
 .input-label { font-size: 10px; font-family: 'Cinzel', serif; letter-spacing: 0.15em; color: #888888; margin-bottom: 0.6rem; margin-left: 0.8rem; text-transform: uppercase; font-weight: 700; display: flex; align-items: center; gap: 0.4rem; }
 
-.modal-mask { position: fixed; inset: 0; background: rgba(44, 48, 50, 0.5); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.modal-mask { position: fixed; inset: 0; background: rgba(44, 48, 50, 0.5); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
 .modal-card { 
     background: #FCFCFA; 
     width: 100%; 

@@ -720,6 +720,7 @@ match /{document=**} {
             showToast('Travelers Updated');
         };
 
+        // PDF 匯出邏輯：加入成員總花費與依日期排序明細
         const exportPDF = () => {
             showToast('Generating PDF...');
             const element = document.createElement('div');
@@ -756,18 +757,44 @@ match /{document=**} {
 
             // Budget Section
             html += `<h2 style="font-size:20px; border-bottom: 2px solid #C5A059; padding-bottom: 8px; margin-top: 40px;">Budget Overview</h2>`;
-            html += `<p style="font-size: 16px; font-weight:bold;">Total: ${currencySymbol.value} ${totalExpense.value.toLocaleString()} <span style="font-size:12px; color:#9CA3AF; font-weight:normal;">(≈ NT$ ${toTWD(totalExpense.value)})</span></p>`;
+            html += `<p style="font-size: 16px; font-weight:bold;">Grand Total: ${currencySymbol.value} ${totalExpense.value.toLocaleString()} <span style="font-size:12px; color:#9CA3AF; font-weight:normal;">(≈ NT$ ${toTWD(totalExpense.value)})</span></p>`;
             
-            if (expenses.value.length > 0) {
-                html += `<ul style="list-style: none; padding-left: 0; margin-top: 15px;">`;
-                expenses.value.forEach(exp => {
+            // 1. 成員花費總覽
+            if (travelers.value.length > 0) {
+                html += `<h3 style="font-size:14px; margin-top: 15px; color: #5F6368; text-transform: uppercase; letter-spacing: 1px;">Member Expenses</h3>`;
+                html += `<ul style="list-style: none; padding-left: 0; margin-top: 5px;">`;
+                travelers.value.forEach(t => {
+                    const memberTotal = getMemberDetails(t).total;
                     html += `
-                        <li style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #E0E0E0; padding-bottom: 8px;">
-                            <span><strong>${exp.title}</strong> (${exp.payer} paid)</span>
-                            <span>${currencySymbol.value} ${Number(exp.amount).toLocaleString()}</span>
+                        <li style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                            <span><strong>${t}</strong></span>
+                            <span>${currencySymbol.value} ${Math.round(memberTotal).toLocaleString()}</span>
                         </li>`;
                 });
                 html += `</ul>`;
+            }
+
+            // 2. 依日期排版的消費明細
+            if (groupedExpenses.value.length > 0) {
+                html += `<h3 style="font-size:14px; margin-top: 25px; color: #5F6368; text-transform: uppercase; letter-spacing: 1px;">Expense Details</h3>`;
+                groupedExpenses.value.forEach(group => {
+                    html += `<h4 style="font-size:14px; margin-top: 15px; color: #3E4E50; border-bottom: 1px solid #E0E0E0; padding-bottom: 4px;">${group.displayDate} &nbsp; <span style="font-size:11px; color:#9CA3AF;">(Subtotal: ${currencySymbol.value} ${group.total.toLocaleString()})</span></h4>`;
+                    html += `<ul style="list-style: none; padding-left: 0; margin-top: 8px;">`;
+                    group.items.forEach(exp => {
+                        let typeText = exp.type === 'shared' ? '共同' : (exp.type === 'individual' && exp.beneficiaries?.[0] !== exp.payer ? '代墊' : '自費');
+                        html += `
+                            <li style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; border-bottom: 1px dashed #E0E0E0; padding-bottom: 8px;">
+                                <span>
+                                    <strong>${exp.title}</strong> 
+                                    <br><span style="font-size:11px; color:#9CA3AF;">${exp.payer} 付款 / ${typeText}</span>
+                                </span>
+                                <span>${currencySymbol.value} ${Number(exp.amount).toLocaleString()}</span>
+                            </li>`;
+                    });
+                    html += `</ul>`;
+                });
+            } else {
+                html += `<p style="font-size: 13px; color: #9CA3AF; margin-top: 10px;">No expense records.</p>`;
             }
 
             element.innerHTML = html;

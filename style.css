@@ -17,28 +17,51 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
     box-shadow: 0 0 50px rgba(0,0,0,0.1); 
 }
 
-/* 調整 Header 頂部間距，確保不會頂到手機瀏海 */
+/* 確保 Header 頂部在有瀏海的手機上顯示正常 */
 header {
     padding-top: calc(env(safe-area-inset-top) + 20px) !important;
+}
+
+/* 調整主內容區域的間距 */
+main {
+    padding-bottom: 120px !important; /* 增加底部 Padding，確保內容不會被選單擋住 */
 }
 
 .btn-base { display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; cursor: pointer; }
 .btn-base:active { transform: scale(0.95); }
 .icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid #E0E0E0; background: rgba(255,255,255,0.8); color: #5F6368; }
 
-/* FAB 懸浮按鈕位置調整，避免離導覽列太近 */
-.fab-btn { position: absolute; bottom: calc(100px + env(safe-area-inset-bottom)); right: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 9999px; background-color: #2C3032; color: #C5A059; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(44, 48, 50, 0.4); z-index: 999; border: 1px solid rgba(255,255,255,0.1); transition: transform 0.2s; }
+/* 提升懸浮按鈕的高度 */
+.fab-btn { 
+    position: absolute; 
+    bottom: calc(110px + env(safe-area-inset-bottom)); 
+    right: 1.5rem; 
+    width: 3.5rem; 
+    height: 3.5rem; 
+    border-radius: 9999px; 
+    background-color: #2C3032; 
+    color: #C5A059; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    box-shadow: 0 10px 25px -5px rgba(44, 48, 50, 0.4); 
+    z-index: 999; 
+    border: 1px solid rgba(255,255,255,0.1); 
+    transition: transform 0.2s; 
+}
 .fab-btn:active { transform: scale(0.9) rotate(90deg); }
 
-/* 導覽列優化：增加下方的 Padding 確保在全螢幕手機上不會太靠下 */
+/* 導覽列優化：進一步拉大底部間距，強制將選單壓回最下方 */
 nav.glass-panel { 
     background: rgba(244, 242, 238, 0.95); 
     backdrop-filter: blur(20px); 
     -webkit-backdrop-filter: blur(20px); 
     border-top: 1px solid rgba(0,0,0,0.05);
-    padding-bottom: calc(env(safe-area-inset-bottom) + 15px) !important; 
+    padding-bottom: calc(env(safe-area-inset-bottom) + 5px) !important; /* 修正底部安全邊距 */
     height: auto !important;
-    min-height: 85px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
 }
 
 .input-rounded { 

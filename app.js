@@ -12,7 +12,10 @@
             const destination = ref('');
             const startDate = ref('');
             
+            // 新增：收折狀態與編輯索引
             const collapsedDates = ref({}); 
+            const editingExpenseIndex = ref(-1);
+
             const ghToken = ref(localStorage.getItem('gh_token') || '');
             const ghRepo = ref(localStorage.getItem('gh_repo') || '');
             const dataSha = ref(''); 
@@ -24,10 +27,14 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
-            const editingExpenseIndex = ref(-1);
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
-            const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同', splitWith: [], note: '' });
+            
+            // 修改：加入 note 欄位
+            const newItemExpense = ref({ 
+                title: '', amount: 0, date: '', time: '', 
+                payer: '', type: '共同', splitWith: [], note: '' 
+            });
 
             const safeB64Decode = (str) => {
                 try {
@@ -35,7 +42,7 @@
                     const bytes = new Uint8Array(bin.length);
                     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
                     return JSON.parse(new TextDecoder().decode(bytes));
-                } catch (e) { console.error("Decode Failed", e); return null; }
+                } catch (e) { return null; }
             };
 
             const safeB64Encode = (obj) => {
@@ -49,6 +56,7 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
+            // 計算個人消費詳情 (包含代墊與分攤)
             const getMemberStats = (name) => {
                 let shared = 0;
                 let privateVal = 0;
@@ -97,13 +105,13 @@
                 return { amount: Math.round(Math.abs(myBal)), from: myBal > 0 ? (members.value.find(n => n !== '我') || '旅伴') : '我', to: myBal > 0 ? '我' : (members.value.find(n => n !== '我') || '旅伴') };
             });
 
-            // 修正點：確保日期分組邏輯中的 e.date 引用正確
+            // 修正分組邏輯中的變數引用錯誤
             const groupedExpenses = computed(() => {
                 const g = {};
                 (expenses.value || []).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
                     if (!g[e.date]) g[e.date] = { items: [], total: 0 };
                     g[e.date].items.push(e);
-                    g[e.date].total += (Number(e.amount) || 0); // 修正：這裡原本誤寫為 g[date]
+                    g[e.date].total += (Number(e.amount) || 0); 
                 });
                 return g;
             });
@@ -153,7 +161,7 @@
             };
 
             onMounted(async () => {
-                setTimeout(() => { isAppReady.value = true; }, 3000);
+                setTimeout(() => isAppReady.value = true, 3000);
                 if (isInitialized.value) await loadFromGitHub();
                 isAppReady.value = true;
             });
@@ -169,10 +177,7 @@
                     if (currentTab.value === 'money') {
                         editingExpenseIndex.value = -1;
                         newItemExpense.value = { title: '', amount: 0, date: n.toISOString().split('T')[0], time: n.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }), payer: members.value[0], type: '共同', splitWith: [...members.value], note: '' };
-                    } else { 
-                        newItem.value = { hour: '09', minute: '00', title: '' }; 
-                        editingIndex.value = -1; 
-                    }
+                    } else { newItem.value = { hour: '09', minute: '00', title: '' }; editingIndex.value = -1; }
                     showAddModal.value = true;
                 },
                 openEditExpenseModal: (exp) => {
@@ -196,9 +201,9 @@
                     showAddModal.value = false; saveToGitHub(); 
                 },
                 confirmDeleteExpense: (exp) => { 
-                    if(confirm("確定刪除這筆開銷？")) { 
+                    if(confirm("確定要刪除這筆開銷嗎？")) { 
                         expenses.value = expenses.value.filter(e => e !== exp); 
-                        showAddModal.value = false; 
+                        showAddModal.value = false;
                         saveToGitHub(); 
                     } 
                 },

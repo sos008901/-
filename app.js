@@ -152,6 +152,8 @@
             };
 
             onMounted(async () => {
+                // 安全機制：不論讀取成功與否，3秒後一定關閉載入畫面
+                setTimeout(() => { isAppReady.value = true; }, 3000);
                 if (isInitialized.value) await loadFromGitHub();
                 isAppReady.value = true;
             });

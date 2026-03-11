@@ -107,13 +107,14 @@
                                 <span class="text-[11px] font-black font-serif text-[#2C3032]">¥ {{ group.total.toLocaleString() }}</span>
                             </div>
                             <div class="space-y-3">
-                                <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm" @click="confirmDeleteExpense(exp)">
+                                <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm active:scale-[0.98] transition-transform" @click="openEditExpenseModal(exp)">
                                     <div class="flex justify-between items-center">
-                                        <div>
+                                        <div class="flex-1 pr-4">
                                             <h5 class="text-lg font-serif font-black">{{ exp.title }}</h5>
-                                            <p class="text-[10px] text-gray-400">{{ exp.payer }} 付款 | {{ exp.type }} | 分擔: {{ exp.splitWith ? exp.splitWith.join(', ') : '全員' }}</p>
+                                            <p v-if="exp.note" class="text-xs text-[#C5A059] mb-1 italic">{{ exp.note }}</p>
+                                            <p class="text-[10px] text-gray-400">{{ exp.payer }} 付款 | {{ exp.type }}</p>
                                         </div>
-                                        <div class="font-serif font-black text-[#2C3032]">¥ {{ (Number(exp.amount) || 0).toLocaleString() }}</div>
+                                        <div class="font-serif font-black text-[#2C3032] whitespace-nowrap">¥ {{ (Number(exp.amount) || 0).toLocaleString() }}</div>
                                     </div>
                                 </div>
                             </div>
@@ -161,7 +162,9 @@
 
             <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
                 <div class="modal-card !p-8 !max-w-[26rem]">
-                    <h2 class="text-center font-serif font-black text-2xl mb-10 tracking-widest uppercase text-[#2C3032]">New Expense</h2>
+                    <h2 class="text-center font-serif font-black text-2xl mb-10 tracking-widest uppercase text-[#2C3032]">
+                        {{ editingExpenseIndex === -1 ? 'New Expense' : 'Edit Expense' }}
+                    </h2>
                     <div class="space-y-8">
                         <div class="text-center">
                             <label class="premium-label">Item</label>
@@ -174,6 +177,10 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="premium-label text-center block">Date</label><input v-model="newItemExpense.date" type="date" class="premium-input text-xs text-center"></div>
                             <div><label class="premium-label text-center block">Time</label><input v-model="newItemExpense.time" type="time" class="premium-input text-xs text-center"></div>
+                        </div>
+                        <div>
+                            <label class="premium-label text-center block">備註 Note</label>
+                            <input v-model="newItemExpense.note" class="premium-input !py-3 text-center text-sm" placeholder="選填">
                         </div>
                         <div>
                             <label class="premium-label text-center block">付款人 PAYER</label>
@@ -192,7 +199,10 @@
                         <div class="flex bg-gray-100 p-1.5 rounded-2xl">
                             <button v-for="t in ['共同', '自費', '代墊']" :key="t" @click="newItemExpense.type = t" :class="newItemExpense.type === t ? 'bg-[#C5A059] text-white shadow-md' : 'text-gray-400'" class="flex-1 py-2.5 rounded-xl font-bold text-xs transition-all">{{ t }}</button>
                         </div>
-                        <button @click="addExpense" class="btn-gold !rounded-3xl py-5 text-base shadow-xl active:scale-95">CONFIRM</button>
+                        <button @click="addExpense" class="btn-gold !rounded-3xl py-5 text-base shadow-xl active:scale-95">
+                            {{ editingExpenseIndex === -1 ? 'CONFIRM' : 'UPDATE' }}
+                        </button>
+                        <button v-if="editingExpenseIndex !== -1" @click="confirmDeleteExpense(expenses[editingExpenseIndex])" class="w-full text-red-400 text-[10px] font-black uppercase py-2">Delete Expense</button>
                     </div>
                 </div>
             </div>

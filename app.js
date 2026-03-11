@@ -12,10 +12,7 @@
             const destination = ref('');
             const startDate = ref('');
             
-            // 新增：收折狀態與編輯索引
             const collapsedDates = ref({}); 
-            const editingExpenseIndex = ref(-1);
-
             const ghToken = ref(localStorage.getItem('gh_token') || '');
             const ghRepo = ref(localStorage.getItem('gh_repo') || '');
             const dataSha = ref(''); 
@@ -27,10 +24,11 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
+            const editingExpenseIndex = ref(-1); // 新增：用於判斷是編輯還是新增
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
             
-            // 修改：加入 note 欄位
+            // 確保包含 note 欄位
             const newItemExpense = ref({ 
                 title: '', amount: 0, date: '', time: '', 
                 payer: '', type: '共同', splitWith: [], note: '' 
@@ -56,30 +54,20 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
-            // 計算個人消費詳情 (包含代墊與分攤)
             const getMemberStats = (name) => {
-                let shared = 0;
-                let privateVal = 0;
+                let shared = 0; let privateVal = 0;
                 (expenses.value || []).forEach(e => {
                     const amt = Number(e.amount) || 0;
                     const splitWith = (e.splitWith && e.splitWith.length > 0) ? e.splitWith : members.value;
-                    if (e.type === '共同') {
-                        if (splitWith.includes(name)) shared += amt / splitWith.length;
-                    } else if (e.type === '自費') {
-                        if (e.payer === name) privateVal += amt;
-                    } else if (e.type === '代墊') {
+                    if (e.type === '共同') { if (splitWith.includes(name)) shared += amt / splitWith.length; }
+                    else if (e.type === '自費') { if (e.payer === name) privateVal += amt; }
+                    else if (e.type === '代墊') {
                         const beneficiaries = splitWith.filter(m => m !== e.payer);
                         if (beneficiaries.includes(name)) privateVal += amt / beneficiaries.length;
                     }
                 });
                 const total = shared + privateVal;
-                return {
-                    total: Math.round(total),
-                    shared: Math.round(shared),
-                    private: Math.round(privateVal),
-                    percent: totalJPY.value > 0 ? (total / totalJPY.value) * 100 : 0,
-                    twd: Math.round(total * 0.21)
-                };
+                return { total: Math.round(total), shared: Math.round(shared), private: Math.round(privateVal), percent: totalJPY.value > 0 ? (total / totalJPY.value) * 100 : 0, twd: Math.round(total * 0.21) };
             };
 
             const settlement = computed(() => {
@@ -105,7 +93,7 @@
                 return { amount: Math.round(Math.abs(myBal)), from: myBal > 0 ? (members.value.find(n => n !== '我') || '旅伴') : '我', to: myBal > 0 ? '我' : (members.value.find(n => n !== '我') || '旅伴') };
             });
 
-            // 修正分組邏輯中的變數引用錯誤
+            // 已修正：g[e.date]
             const groupedExpenses = computed(() => {
                 const g = {};
                 (expenses.value || []).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
@@ -161,7 +149,6 @@
             };
 
             onMounted(async () => {
-                setTimeout(() => isAppReady.value = true, 3000);
                 if (isInitialized.value) await loadFromGitHub();
                 isAppReady.value = true;
             });
@@ -169,7 +156,7 @@
             return {
                 isAppReady, isInitialized, currentTab, days, expenses, members, currentDayIndex, currentDayItems, destination, startDate,
                 ghToken, ghRepo, isSyncing, showAddModal, showSettingsModal, showTravelerModal, toast, 
-                newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses, editingExpenseIndex,
+                newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses, editingExpenseIndex, editingIndex,
                 collapsedDates,
                 toggleDateCollapse: (date) => { collapsedDates.value[date] = !collapsedDates.value[date]; },
                 onFabClick: () => {
@@ -201,9 +188,9 @@
                     showAddModal.value = false; saveToGitHub(); 
                 },
                 confirmDeleteExpense: (exp) => { 
-                    if(confirm("確定要刪除這筆開銷嗎？")) { 
+                    if(confirm("確定刪除這筆開銷？")) { 
                         expenses.value = expenses.value.filter(e => e !== exp); 
-                        showAddModal.value = false;
+                        showAddModal.value = false; 
                         saveToGitHub(); 
                     } 
                 },

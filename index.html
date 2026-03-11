@@ -48,14 +48,6 @@
                         </div>
                         <button @click="showSettingsModal = true" class="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 shadow-sm"><i class="fas fa-sliders-h"></i></button>
                     </div>
-
-                    <div v-if="currentTab === 'schedule'" class="flex gap-3 overflow-x-auto no-scrollbar py-2">
-                        <button v-for="(day, index) in days" :key="index" @click="selectDay(index)" :class="currentDayIndex === index ? 'day-card-active' : 'day-card-inactive'" class="flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center border transition-all shadow-sm">
-                            <span class="text-[9px] font-bold opacity-60 mb-1 uppercase">Day {{ index + 1 }}</span>
-                            <span class="text-sm font-serif font-black">{{ getDayInfo(index).date }}</span>
-                        </button>
-                        <button @click="addNewDay" class="flex-shrink-0 w-16 h-20 rounded-2xl border-2 border-dashed border-gray-200 text-gray-300 flex items-center justify-center"><i class="fas fa-plus"></i></button>
-                    </div>
                 </header>
 
                 <main class="flex-1 overflow-y-auto pb-40 no-scrollbar p-6">
@@ -134,16 +126,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <div v-if="currentTab === 'schedule'" class="space-y-4">
-                        <div v-for="(item, index) in currentDayItems" :key="index" class="schedule-item-card" @click="openEditModal(index)">
-                            <div class="w-1 bg-[#C5A059] rounded-full mr-4"></div>
-                            <div class="flex-1 text-left min-w-0">
-                                <span class="text-[10px] font-black text-[#C5A059] tracking-widest">{{ item.time }}</span>
-                                <h3 class="text-lg font-serif font-black text-[#2C3032] mt-0.5 truncate">{{ item.title }}</h3>
-                            </div>
-                        </div>
-                    </div>
                 </main>
 
                 <button @click="onFabClick" class="fab-btn shadow-2xl">
@@ -156,23 +138,6 @@
                     <button @click="currentTab='memo'" :class="currentTab==='memo'?'nav-item-active':''" class="nav-item"><i class="fas fa-book-open"></i><span>MEMO</span></button>
                 </nav>
             </template>
-
-            <div v-if="showTravelerModal" class="modal-mask" @click.self="showTravelerModal = false">
-                <div class="modal-card !p-8 !max-w-[22rem]">
-                    <h2 class="text-center font-serif font-black text-2xl mb-8 tracking-widest text-[#2C3032]">Travelers</h2>
-                    <div class="space-y-4 mb-8">
-                        <div v-for="(name, index) in tempMembers" :key="index" class="flex items-center gap-4">
-                            <span class="font-serif font-black text-[#C5A059] text-sm w-4">{{ index + 1 }}</span>
-                            <div class="flex-1 relative">
-                                <input v-model="tempMembers[index]" class="premium-input !py-3 !px-6 !bg-gray-100 !rounded-full font-bold">
-                                <button @click="removeTraveler(index)" class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center"><i class="fas fa-times"></i></button>
-                            </div>
-                        </div>
-                        <button @click="addTraveler" class="w-full py-4 border-2 border-dashed border-[#C5A059]/30 rounded-full text-[#C5A059] text-[11px] font-black uppercase tracking-widest">+ Add New Traveler</button>
-                    </div>
-                    <button @click="saveTravelers" class="btn-gold !bg-[#2C3032] !text-white !rounded-2xl py-5 text-sm uppercase tracking-widest">Save Changes</button>
-                </div>
-            </div>
 
             <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
                 <div class="modal-card !p-8 !max-w-[26rem]">
@@ -194,7 +159,7 @@
                         </div>
                         <div>
                             <label class="premium-label text-center block">Note 備註</label>
-                            <input v-model="newItemExpense.note" class="premium-input !py-3 text-center text-sm" placeholder="點擊輸入備註">
+                            <input v-model="newItemExpense.note" class="premium-input !py-3 text-center text-sm" placeholder="選填">
                         </div>
                         <div>
                             <label class="premium-label text-center block">Payer 付款人</label>
@@ -221,15 +186,20 @@
                 </div>
             </div>
 
-            <div v-if="showAddModal && currentTab === 'schedule'" class="modal-mask" @click.self="showAddModal = false">
-                <div class="modal-card !p-8 !max-w-[24rem]">
-                    <h2 class="text-center font-serif font-black text-2xl text-[#2C3032] mb-10 uppercase tracking-widest">{{ editingIndex === -1 ? 'New Event' : 'Edit Event' }}</h2>
-                    <div class="space-y-8">
-                        <div><label class="premium-label">Title</label><input v-model="newItem.title" class="premium-input" placeholder="景點名稱"></div>
-                        <div class="text-center"><label class="premium-label block">Time</label><div class="time-pill mx-auto w-fit px-6"><input v-model="newItem.hour" class="time-input" placeholder="09"><span class="mx-2">:</span><input v-model="newItem.minute" class="time-input" placeholder="00"></div></div>
-                        <button @click="addItem" class="btn-gold uppercase tracking-widest active:scale-95">SAVE EVENT</button>
-                        <button v-if="editingIndex !== -1" @click="deleteItem" class="w-full text-red-400 text-[10px] font-black uppercase py-2">Delete Event</button>
+            <div v-if="showTravelerModal" class="modal-mask" @click.self="showTravelerModal = false">
+                <div class="modal-card !p-8 !max-w-[22rem]">
+                    <h2 class="text-center font-serif font-black text-2xl mb-8 tracking-widest text-[#2C3032]">Travelers</h2>
+                    <div class="space-y-4 mb-8">
+                        <div v-for="(name, index) in tempMembers" :key="index" class="flex items-center gap-4">
+                            <span class="font-serif font-black text-[#C5A059] text-sm w-4">{{ index + 1 }}</span>
+                            <div class="flex-1 relative">
+                                <input v-model="tempMembers[index]" class="premium-input !py-3 !px-6 !bg-gray-100 !rounded-full font-bold">
+                                <button @click="removeTraveler(index)" class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button @click="addTraveler" class="w-full py-4 border-2 border-dashed border-[#C5A059]/30 rounded-full text-[#C5A059] text-[11px] font-black uppercase tracking-widest">+ Add New Traveler</button>
                     </div>
+                    <button @click="saveTravelers" class="btn-gold !bg-[#2C3032] !text-white !rounded-2xl py-5 text-sm uppercase tracking-widest">Save Changes</button>
                 </div>
             </div>
 

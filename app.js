@@ -6,14 +6,17 @@ import { createApp, ref, computed, onMounted, watch, nextTick, getCurrentInstanc
 // ----------------------------------------------------
 // 1. Firebase Configuration & Initialization
 // ----------------------------------------------------
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyAuSZftA_x822_SLh7292lEutuLr9KFteM",
-  authDomain: "trip-new-36c48.firebaseapp.com",
-  projectId: "trip-new-36c48",
-  storageBucket: "trip-new-36c48.firebasestorage.app",
-  messagingSenderId: "189989466738",
-  appId: "1:189989466738:web:a2d1412b213caadb6408eb"
+  apiKey: "AIzaSyAB21TMFMPr1UCujtMFH2X6OvBYMQb_ff8",
+  authDomain: "fukuoka-a41df.firebaseapp.com",
+  projectId: "fukuoka-a41df",
+  storageBucket: "fukuoka-a41df.firebasestorage.app",
+  messagingSenderId: "569991059297",
+  appId: "1:569991059297:web:96cb6a2831f60f5197d720",
+  measurementId: "G-KSMQY3QYF8"
 };
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -847,3 +850,4 @@ match /{document=**} {
         };
     }
 }).mount('#app');
+

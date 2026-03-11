@@ -24,7 +24,7 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
-            const editingExpenseIndex = ref(-1); // 追蹤正在編輯的索引
+            const editingExpenseIndex = ref(-1);
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
             const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同', splitWith: [], note: '' });
@@ -49,7 +49,6 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
-            // 計算個人消費統計（包含共同分攤、個人自費、代墊）
             const getMemberStats = (name) => {
                 let shared = 0;
                 let privateVal = 0;
@@ -98,12 +97,13 @@
                 return { amount: Math.round(Math.abs(myBal)), from: myBal > 0 ? (members.value.find(n => n !== '我') || '旅伴') : '我', to: myBal > 0 ? '我' : (members.value.find(n => n !== '我') || '旅伴') };
             });
 
+            // 修正點：確保日期分組邏輯中的 e.date 引用正確
             const groupedExpenses = computed(() => {
                 const g = {};
                 (expenses.value || []).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
                     if (!g[e.date]) g[e.date] = { items: [], total: 0 };
                     g[e.date].items.push(e);
-                    g[date].total += (Number(e.amount) || 0);
+                    g[e.date].total += (Number(e.amount) || 0); // 修正：這裡原本誤寫為 g[date]
                 });
                 return g;
             });

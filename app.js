@@ -12,9 +12,7 @@
             const destination = ref('');
             const startDate = ref('');
             
-            // --- 新增：紀錄收折狀態的物件 ---
             const collapsedDates = ref({}); 
-
             const ghToken = ref(localStorage.getItem('gh_token') || '');
             const ghRepo = ref(localStorage.getItem('gh_repo') || '');
             const dataSha = ref(''); 
@@ -51,10 +49,38 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
-            const getMemberTotal = (name) => {
-                const list = (expenses.value || []).filter(e => e.payer === name);
-                const total = list.reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
-                return { total, percent: totalJPY.value > 0 ? (total / totalJPY.value) * 100 : 0 };
+            // --- 重要修改：計算每個人真正的「消費額」 ---
+            const getMemberStats = (name) => {
+                let shared = 0;
+                let privateVal = 0;
+                
+                (expenses.value || []).forEach(e => {
+                    const amt = Number(e.amount) || 0;
+                    const splitWith = (e.splitWith && e.splitWith.length > 0) ? e.splitWith : members.value;
+                    
+                    if (e.type === '共同') {
+                        if (splitWith.includes(name)) {
+                            shared += amt / splitWith.length;
+                        }
+                    } else if (e.type === '自費') {
+                        if (e.payer === name) privateVal += amt;
+                    } else if (e.type === '代墊') {
+                        // 代墊由受益人平分
+                        const beneficiaries = splitWith.filter(m => m !== e.payer);
+                        if (beneficiaries.includes(name)) {
+                            privateVal += amt / beneficiaries.length;
+                        }
+                    }
+                });
+
+                const total = shared + privateVal;
+                return {
+                    total: Math.round(total),
+                    shared: Math.round(shared),
+                    private: Math.round(privateVal),
+                    percent: totalJPY.value > 0 ? (total / totalJPY.value) * 100 : 0,
+                    twd: Math.round(total * 0.21)
+                };
             };
 
             const settlement = computed(() => {
@@ -143,10 +169,8 @@
                 isAppReady, isInitialized, currentTab, days, expenses, members, currentDayIndex, currentDayItems, destination, startDate,
                 ghToken, ghRepo, isSyncing, showAddModal, showSettingsModal, showTravelerModal, toast, 
                 newItem, newItemExpense, tempMembers, totalJPY, totalTWD, settlement, groupedExpenses, editingExpenseIndex,
-                collapsedDates, // 暴露給模板
-                toggleDateCollapse: (date) => {
-                    collapsedDates.value[date] = !collapsedDates.value[date];
-                },
+                collapsedDates,
+                toggleDateCollapse: (date) => { collapsedDates.value[date] = !collapsedDates.value[date]; },
                 onFabClick: () => {
                     const n = new Date();
                     if (currentTab.value === 'money') {
@@ -192,7 +216,7 @@
                 getDayInfo: (idx) => { if (!startDate.value) return { date: '-' }; const d = new Date(startDate.value); d.setDate(d.getDate() + idx); return { date: `${d.getMonth()+1}/${d.getDate()}` }; },
                 formatDisplayDate: (str) => { const d = new Date(str); const ws=['週日','週一','週二','週三','週四','週五','週六']; return `${d.getMonth()+1}月${d.getDate()}日 ${ws[d.getDay()]}`; },
                 logout: () => { localStorage.clear(); location.reload(); },
-                getMemberTotal
+                getMemberStats // 暴露新函式
             };
         }
     }).mount('#app');

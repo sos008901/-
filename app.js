@@ -19,7 +19,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// 使用一個固定的 ID 來存放此群組的行程。
 const TRIP_DOC_ID = "shared_trip_data"; 
 const tripDocRef = doc(db, "trips", TRIP_DOC_ID);
 
@@ -45,22 +44,19 @@ function debounce(func, wait) {
 
 createApp({
     setup() {
-        // Data Refs
         const currentTab = ref('schedule');
         const currentDayIndex = ref(0);
         const days = ref([{ items: [] }]);
         const travelers = ref(['我', '旅伴']);
         const expenses = ref([]);
         
-        // Notes & Shopping List
         const notes = ref([]); 
-        const shoppingList = ref([]); // Now stores Shops: [{ id, shopName, items: [], expanded: true, tempItemInput: '', tempLinkInput: '', tempNoteInput: '', showLinkInput: false, showNoteInput: false, isRenaming: false, tempImages: [] }]
+        const shoppingList = ref([]);
         const newShopName = ref('');
         
-        // Shopping Edit Modal State
         const showShoppingEditModal = ref(false);
         const editForm = ref({ shopId: null, itemId: null, text: '', link: '', note: '', images: [] });
-        const viewingImage = ref(null); // Full screen viewer
+        const viewingImage = ref(null);
 
         const exchangeRate = ref(0.21);
         const startDate = ref('');
@@ -77,16 +73,17 @@ createApp({
         const expandedDates = ref([]); 
         const editingTravelers = ref([]);
 
-        // Cloud Status
         const isSyncing = ref(false);
         const isRemoteUpdate = ref(false); 
-        const permissionError = ref(false); // Track permission errors
-        let unsubscribeSnapshot = null; // To hold the listener unsub function
+        const permissionError = ref(false);
+        let unsubscribeSnapshot = null;
 
-        // Form Temps
         const tempDestination = ref(''), tempStartDate = ref(''), detectedInfo = ref('');
         const tempHour = ref('09'), tempMinute = ref('00'), tempHourExp = ref('09'), tempMinuteExp = ref('00');
-        const formItem = ref({ id: null, time: '', title: '', location: '', note: '' });
+        
+        // 🚨 這裡有更新：加入 dayIndex 與 oldDayIndex
+        const formItem = ref({ id: null, time: '', title: '', location: '', note: '', dayIndex: 0, oldDayIndex: 0 });
+        
         const formExpense = ref({ id: null, title: '', amount: '', payer: travelers.value[0], beneficiaries: [], type: 'shared', date: '', time: '', note: '' });
         const formNote = ref({ id: null, title: '', content: '', updatedAt: '', images: [] });
         
@@ -101,7 +98,6 @@ match /{document=**} {
 
         const instance = getCurrentInstance();
 
-        // Image Compression (Smart Quality Adjustment)
         const compressImage = (file) => {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -109,9 +105,6 @@ match /{document=**} {
                     const img = new Image();
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        
-                        // Increase Max Resolution for better mobile view
-                        // 1600px is a good balance for full-screen mobile viewing
                         const MAX_DIM = 1600; 
                         let width = img.width;
                         let height = img.height;
@@ -127,21 +120,14 @@ match /{document=**} {
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Start with high quality (0.9)
                         let quality = 0.9;
                         let dataUrl = canvas.toDataURL('image/jpeg', quality);
-                        
-                        // Check size: Firestore document limit is 1MB.
-                        // Base64 length * 0.75 is approx file size in bytes.
-                        // We target < 900KB safe limit (~1.2M characters) to leave room for text data.
                         const MAX_CHAR_LENGTH = 1200000; 
                         
-                        // Loop to reduce quality only if necessary
                         while (dataUrl.length > MAX_CHAR_LENGTH && quality > 0.5) {
                             quality -= 0.1;
                             dataUrl = canvas.toDataURL('image/jpeg', quality);
                         }
-                        
                         resolve(dataUrl); 
                     };
                     img.src = e.target.result;
@@ -150,7 +136,6 @@ match /{document=**} {
             });
         };
 
-        // Computed
         const currentDayItems = computed(() => days.value[currentDayIndex.value]?.items || []);
         const totalExpense = computed(() => expenses.value.reduce((sum, exp) => sum + Number(exp.amount), 0));
         
@@ -173,7 +158,6 @@ match /{document=**} {
             return stats;
         });
 
-        // UI Toggles
         const toggleExpand = (id) => expandedItemId.value = expandedItemId.value === id ? null : id;
         const toggleExpandNote = (id) => expandedNoteId.value = expandedNoteId.value === id ? null : id; 
         const toggleDateGroup = (date) => {
@@ -184,7 +168,6 @@ match /{document=**} {
         const showMemberStats = ref(true); 
         const collapsedDates = ref([]);
 
-        // Drag & Drop
         const dragState = ref({ isDown: false, startX: 0, scrollLeft: 0 });
         const dragIndex = ref(null);
         const dateContainer = ref(null);
@@ -292,13 +275,8 @@ match /{document=**} {
             if (!detectedInfo.value) detectCurrency(); 
         };
         
-        // ----------------------------------------------------
-        // 3. Firebase Data Persistence Logic
-        // ----------------------------------------------------
-        
         const saveToCloud = debounce(async () => {
             if (isRemoteUpdate.value) return;
-
             isSyncing.value = true;
             permissionError.value = false; 
             
@@ -329,9 +307,7 @@ match /{document=**} {
         }, 800);
 
         watch([days, expenses, notes, shoppingList, startDate, destination, exchangeRate, currencySymbol, travelers], () => {
-            if (!isRemoteUpdate.value) {
-                saveToCloud();
-            }
+            if (!isRemoteUpdate.value) saveToCloud();
         }, { deep: true });
 
         const setupFirestoreListener = () => {
@@ -347,13 +323,11 @@ match /{document=**} {
                     days.value = d.days || [{items:[]}]; 
                     expenses.value = (d.expenses||[]).map(e => ({...e, beneficiaries: e.beneficiaries || [], type: e.type || 'shared'})); 
                     
-                    // Parse Notes: Migration Logic for Images Array
                     notes.value = (d.notes || []).map(n => ({
                         ...n,
                         images: n.images || (n.image ? [n.image] : [])
                     }));
                     
-                    // Load Shopping List with State Preservation & Migration
                     const currentShops = shoppingList.value.reduce((acc, shop) => {
                         acc[shop.id] = shop;
                         return acc;
@@ -362,7 +336,6 @@ match /{document=**} {
                     let rawShopping = d.shoppingList || [];
                     
                     if (rawShopping.length > 0 && !rawShopping[0].items && !rawShopping[0].shopName) {
-                         // Old flat list migration
                          shoppingList.value = [{
                              id: 'default_migrated',
                              shopName: '未分類項目',
@@ -384,7 +357,7 @@ match /{document=**} {
                                  tempItemInput: local ? local.tempItemInput : '', 
                                  tempLinkInput: local ? local.tempLinkInput : '',
                                  tempNoteInput: local ? local.tempNoteInput : '',
-                                 tempImages: local ? local.tempImages : [], // Preserve temp images
+                                 tempImages: local ? local.tempImages : [], 
                                  showLinkInput: local ? local.showLinkInput : false,
                                  showNoteInput: local ? local.showNoteInput : false,
                                  isRenaming: local ? local.isRenaming : false
@@ -449,13 +422,9 @@ match /{document=**} {
             setTimeout(() => isRemoteUpdate.value = false, 1000);
         });
 
-        // Image Handlers
         const triggerFileInput = (refName) => {
-            // instance.refs is a proxy object to elements/components
-            // We access instance.refs to find the file input
             const element = instance.refs[refName];
             if (element) {
-                 // If v-for used, it might be an array
                  if (Array.isArray(element)) {
                      element[0].click();
                  } else {
@@ -506,8 +475,13 @@ match /{document=**} {
         const confirmDeleteItem = (id) => triggerConfirm('刪除', '確定刪除此行程？', () => days.value[currentDayIndex.value].items = days.value[currentDayIndex.value].items.filter(i => i.id !== id));
         const confirmDeleteExpense = (id) => triggerConfirm('刪除', '確定刪除？', () => { expenses.value = expenses.value.filter(e => e.id !== id); showExpenseModal.value = false; });
         const confirmDeleteNote = (id) => triggerConfirm('刪除', '確定刪除？', () => { notes.value = notes.value.filter(n => n.id !== id); showNoteModal.value = false; });
+        
         const onFabClick = () => {
-            if(currentTab.value === 'schedule') { formItem.value = { id: Date.now(), time: '09:00', title: '', location: '', note: '' }; tempHour.value='09'; tempMinute.value='00'; isEditing.value = false; showItemModal.value = true; }
+            if(currentTab.value === 'schedule') { 
+                // 🚨 更新：自動帶入 dayIndex
+                formItem.value = { id: Date.now(), time: '09:00', title: '', location: '', note: '', dayIndex: currentDayIndex.value }; 
+                tempHour.value='09'; tempMinute.value='00'; isEditing.value = false; showItemModal.value = true; 
+            }
             if(currentTab.value === 'money') { 
                 const now = new Date();
                 const dateStr = now.toISOString().split('T')[0];
@@ -525,11 +499,25 @@ match /{document=**} {
         const saveItem = () => {
             if(!formItem.value.title) return showToast('請輸入名稱');
             const newItem = { ...formItem.value, time: `${tempHour.value}:${tempMinute.value}` };
-            const items = days.value[currentDayIndex.value].items;
+            
+            // 🚨 更新：完整支援移動日期的邏輯
             if(isEditing.value) { 
-                const idx = items.findIndex(i => i.id === formItem.value.id);
-                if (idx !== -1) items.splice(idx, 1, newItem);
-            } else { items.push(newItem); }
+                const oldIndex = formItem.value.oldDayIndex;
+                const newIndex = formItem.value.dayIndex;
+
+                if (oldIndex === newIndex) {
+                    const items = days.value[oldIndex].items;
+                    const idx = items.findIndex(i => i.id === formItem.value.id);
+                    if (idx !== -1) items.splice(idx, 1, newItem);
+                } else {
+                    days.value[oldIndex].items = days.value[oldIndex].items.filter(i => i.id !== formItem.value.id);
+                    if(!days.value[newIndex].items) days.value[newIndex].items = []; // 防呆
+                    days.value[newIndex].items.push(newItem);
+                }
+            } else { 
+                if(!days.value[newItem.dayIndex].items) days.value[newItem.dayIndex].items = []; // 防呆
+                days.value[newItem.dayIndex].items.push(newItem); 
+            }
             showItemModal.value = false;
         };
         
@@ -583,7 +571,7 @@ match /{document=**} {
 
         const toggleShop = (shop) => { if (!shop.isRenaming) shop.expanded = !shop.expanded; };
         const removeShop = (id) => triggerConfirm('刪除店家', '確定刪除此店家及其所有商品？', () => { shoppingList.value = shoppingList.value.filter(s => s.id !== id); });
-        const enableShopRename = (shop) => { shop.isRenaming = true; nextTick(() => { /* Focus logic if needed */ }); };
+        const enableShopRename = (shop) => { shop.isRenaming = true; nextTick(() => {}); };
         const saveShopRename = (shop) => { if (!shop.shopName.trim()) shop.shopName = "未命名店家"; shop.isRenaming = false; };
         
         const addItemToShop = (shop) => {
@@ -596,7 +584,6 @@ match /{document=**} {
                 images: shop.tempImages || [],
                 done: false
             });
-            // Reset inputs
             shop.tempItemInput = ''; shop.tempLinkInput = ''; shop.tempNoteInput = ''; shop.tempImages = [];
             shop.showLinkInput = false; shop.showNoteInput = false;
         };
@@ -623,7 +610,14 @@ match /{document=**} {
         const removeItem = (shopId, itemId) => { const shop = shoppingList.value.find(s => s.id === shopId); if (shop) shop.items = shop.items.filter(i => i.id !== itemId); };
         const toggleItem = (shopId, item) => { item.done = !item.done; };
         
-        const editItem = (item) => { formItem.value = {...item}; [tempHour.value, tempMinute.value] = item.time.split(':'); isEditing.value=true; showItemModal.value=true; };
+        // 🚨 更新：編輯時帶入舊的 oldDayIndex
+        const editItem = (item) => { 
+            formItem.value = {...item, dayIndex: currentDayIndex.value, oldDayIndex: currentDayIndex.value}; 
+            [tempHour.value, tempMinute.value] = item.time.split(':'); 
+            isEditing.value=true; 
+            showItemModal.value=true; 
+        };
+        
         const editExpense = (exp) => { formExpense.value = {...exp}; if (!formExpense.value.beneficiaries) formExpense.value.beneficiaries = []; if(exp.time) [tempHourExp.value, tempMinuteExp.value] = exp.time.split(':'); isExpenseEditing.value=true; showExpenseModal.value=true; };
         const editNote = (note) => { formNote.value = {...note}; isNoteEditing.value=true; showNoteModal.value=true; };
         const closeAllModals = () => { showItemModal.value = false; showExpenseModal.value = false; showNoteModal.value = false; showSettingsModal.value = false; showTravelerModal.value = false; showShoppingEditModal.value = false; };
@@ -719,13 +713,13 @@ match /{document=**} {
             toggleExpand, expandedItemId, isEditing, isExpenseEditing, isNoteEditing,
             onTouchDragStart, onTouchDragMove, onTouchDragEnd, dragIndex, dateContainer, onDateDragStart, onDateDragMove, onDateDragEnd, getMemberDetails, statistics, debts, toggleBeneficiary, groupedExpenses, tempHourExp, tempMinuteExp, showMemberStats, collapsedDates, toggleDateGroup,
             showTravelerModal, openTravelerModal, editingTravelers, addTraveler, removeTraveler, saveTravelers,
-            isSyncing, permissionError, retryConnection, rulesText, copyRules, // New
-            expandedNoteId, toggleExpandNote, // New for Memo Accordion
-            onMouseDragStart, onMouseDragMove, onMouseDragEnd, // New for Desktop Drag
-            shoppingList, newShopName, addShop, removeShop, addItemToShop, removeItem, toggleItem, toggleShop, // New for Shopping List
-            enableShopRename, saveShopRename, // Shop rename
-            showShoppingEditModal, editForm, openEditItemModal, saveEditItem, // Shopping item edit
-            onNoteImageChange, onShopItemImageChange, onEditItemImageChange, viewingImage, viewImage, triggerFileInput // New Image Handlers
+            isSyncing, permissionError, retryConnection, rulesText, copyRules,
+            expandedNoteId, toggleExpandNote,
+            onMouseDragStart, onMouseDragMove, onMouseDragEnd,
+            shoppingList, newShopName, addShop, removeShop, addItemToShop, removeItem, toggleItem, toggleShop,
+            enableShopRename, saveShopRename,
+            showShoppingEditModal, editForm, openEditItemModal, saveEditItem,
+            onNoteImageChange, onShopItemImageChange, onEditItemImageChange, viewingImage, viewImage, triggerFileInput
         };
     }
 }).mount('#app');

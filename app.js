@@ -24,15 +24,10 @@
             const toast = ref({ show: false, message: '' });
 
             const editingIndex = ref(-1);
-            const editingExpenseIndex = ref(-1); // 新增：用於判斷是編輯還是新增
+            const editingExpenseIndex = ref(-1);
             const tempMembers = ref([]);
             const newItem = ref({ hour: '09', minute: '00', title: '' });
-            
-            // 確保包含 note 欄位
-            const newItemExpense = ref({ 
-                title: '', amount: 0, date: '', time: '', 
-                payer: '', type: '共同', splitWith: [], note: '' 
-            });
+            const newItemExpense = ref({ title: '', amount: 0, date: '', time: '', payer: '', type: '共同', splitWith: [], note: '' });
 
             const safeB64Decode = (str) => {
                 try {
@@ -54,20 +49,30 @@
             const totalJPY = computed(() => (expenses.value || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0));
             const totalTWD = computed(() => Math.round(totalJPY.value * 0.21));
 
+            // 計算個人消費統計：包含共同分擔、自費、別人代墊的部分
             const getMemberStats = (name) => {
-                let shared = 0; let privateVal = 0;
+                let shared = 0;
+                let privateVal = 0;
                 (expenses.value || []).forEach(e => {
                     const amt = Number(e.amount) || 0;
                     const splitWith = (e.splitWith && e.splitWith.length > 0) ? e.splitWith : members.value;
-                    if (e.type === '共同') { if (splitWith.includes(name)) shared += amt / splitWith.length; }
-                    else if (e.type === '自費') { if (e.payer === name) privateVal += amt; }
-                    else if (e.type === '代墊') {
+                    if (e.type === '共同') {
+                        if (splitWith.includes(name)) shared += amt / splitWith.length;
+                    } else if (e.type === '自費') {
+                        if (e.payer === name) privateVal += amt;
+                    } else if (e.type === '代墊') {
                         const beneficiaries = splitWith.filter(m => m !== e.payer);
                         if (beneficiaries.includes(name)) privateVal += amt / beneficiaries.length;
                     }
                 });
                 const total = shared + privateVal;
-                return { total: Math.round(total), shared: Math.round(shared), private: Math.round(privateVal), percent: totalJPY.value > 0 ? (total / totalJPY.value) * 100 : 0, twd: Math.round(total * 0.21) };
+                return {
+                    total: Math.round(total),
+                    shared: Math.round(shared),
+                    private: Math.round(privateVal),
+                    percent: totalJPY.value > 0 ? (total / totalJPY.value) * 100 : 0,
+                    twd: Math.round(total * 0.21)
+                };
             };
 
             const settlement = computed(() => {
@@ -93,7 +98,6 @@
                 return { amount: Math.round(Math.abs(myBal)), from: myBal > 0 ? (members.value.find(n => n !== '我') || '旅伴') : '我', to: myBal > 0 ? '我' : (members.value.find(n => n !== '我') || '旅伴') };
             });
 
-            // 已修正：g[e.date]
             const groupedExpenses = computed(() => {
                 const g = {};
                 (expenses.value || []).sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(e => {
@@ -149,6 +153,7 @@
             };
 
             onMounted(async () => {
+                setTimeout(() => { isAppReady.value = true; }, 3000); // 確保不論如何都會進入
                 if (isInitialized.value) await loadFromGitHub();
                 isAppReady.value = true;
             });
@@ -188,10 +193,9 @@
                     showAddModal.value = false; saveToGitHub(); 
                 },
                 confirmDeleteExpense: (exp) => { 
-                    if(confirm("確定刪除這筆開銷？")) { 
+                    if(confirm("確定刪除？")) { 
                         expenses.value = expenses.value.filter(e => e !== exp); 
-                        showAddModal.value = false; 
-                        saveToGitHub(); 
+                        showAddModal.value = false; saveToGitHub(); 
                     } 
                 },
                 addItem: () => { 

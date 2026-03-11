@@ -5,16 +5,41 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
 [v-cloak] { display: none !important; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 
-#app-container { max-width: 480px; margin: 0 auto; background-color: #F4F2EE; height: 100dvh; overflow: hidden; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 50px rgba(0,0,0,0.1); }
+#app-container { 
+    max-width: 480px; 
+    margin: 0 auto; 
+    background-color: #F4F2EE; 
+    height: 100dvh; 
+    overflow: hidden; 
+    position: relative; 
+    display: flex; 
+    flex-direction: column; 
+    box-shadow: 0 0 50px rgba(0,0,0,0.1); 
+}
+
+/* 調整 Header 頂部間距，確保不會頂到手機瀏海 */
+header {
+    padding-top: calc(env(safe-area-inset-top) + 20px) !important;
+}
+
 .btn-base { display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; cursor: pointer; }
 .btn-base:active { transform: scale(0.95); }
 .icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid #E0E0E0; background: rgba(255,255,255,0.8); color: #5F6368; }
 
-/* 極簡高級感 FAB */
-.fab-btn { position: absolute; bottom: calc(85px + env(safe-area-inset-bottom)); right: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 9999px; background-color: #2C3032; color: #C5A059; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(44, 48, 50, 0.4); z-index: 999; border: 1px solid rgba(255,255,255,0.1); transition: transform 0.2s; }
+/* FAB 懸浮按鈕位置調整，避免離導覽列太近 */
+.fab-btn { position: absolute; bottom: calc(100px + env(safe-area-inset-bottom)); right: 1.5rem; width: 3.5rem; height: 3.5rem; border-radius: 9999px; background-color: #2C3032; color: #C5A059; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(44, 48, 50, 0.4); z-index: 999; border: 1px solid rgba(255,255,255,0.1); transition: transform 0.2s; }
 .fab-btn:active { transform: scale(0.9) rotate(90deg); }
 
-.glass-panel { background: rgba(244, 242, 238, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.05); }
+/* 導覽列優化：增加下方的 Padding 確保在全螢幕手機上不會太靠下 */
+nav.glass-panel { 
+    background: rgba(244, 242, 238, 0.95); 
+    backdrop-filter: blur(20px); 
+    -webkit-backdrop-filter: blur(20px); 
+    border-top: 1px solid rgba(0,0,0,0.05);
+    padding-bottom: calc(env(safe-area-inset-bottom) + 15px) !important; 
+    height: auto !important;
+    min-height: 85px;
+}
 
 .input-rounded { 
     width: 100%; 
@@ -45,10 +70,7 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
     animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
     max-height: 85vh; 
     overflow-y: auto; 
-    -ms-overflow-style: none; 
-    scrollbar-width: none; 
 }
-.modal-card::-webkit-scrollbar { display: none; }
 
 @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 
@@ -81,7 +103,6 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(197, 160, 89, 0.4); border-radius: 99px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(197, 160, 89, 0.8); }
-* { scrollbar-width: thin; scrollbar-color: rgba(197, 160, 89, 0.4) transparent; }
 
 .mode-btn { flex: 1; font-size: 12px; font-weight: bold; border-radius: 1rem; transition: all 0.3s; text-align: center; padding: 0.8rem 0; color: #9CA3AF; border: 1px solid #F0F2F2; }
 .mode-btn.active { background-color: #C5A059; color: white; border-color: #C5A059; box-shadow: 0 4px 10px rgba(197, 160, 89, 0.3); }

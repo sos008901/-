@@ -69,7 +69,7 @@
                             <p class="text-xs text-gray-400 mt-2">≈ NT$ {{ totalTWD.toLocaleString() }}</p>
                         </div>
 
-                        <h4 class="text-[11px] font-black text-gray-400 tracking-[0.15em] uppercase mb-6 px-1">Member Expenses (Consumption)</h4>
+                        <h4 class="text-[11px] font-black text-gray-400 tracking-[0.15em] uppercase mb-6 px-1">Member Consumption</h4>
                         <div class="space-y-4 mb-10">
                             <div v-for="member in members" :key="member" class="member-card shadow-sm">
                                 <div class="flex justify-between items-center mb-4">
@@ -79,21 +79,19 @@
                                     </div>
                                     <div class="text-right font-serif font-black text-[#2C3032]">
                                         <p class="text-lg">¥ {{ getMemberStats(member).total.toLocaleString() }}</p>
-                                        <p class="text-[10px] text-gray-300 font-sans">≈ NT$ {{ getMemberStats(member).twd.toLocaleString() }}</p>
+                                        <p class="text-[9px] text-gray-300 font-sans">≈ NT$ {{ getMemberStats(member).twd.toLocaleString() }}</p>
                                     </div>
                                 </div>
-                                
                                 <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden flex mb-3">
                                     <div class="h-full bg-[#2C3032] transition-all" :style="{ width: getMemberStats(member).percent + '%' }"></div>
                                 </div>
-
                                 <div class="flex justify-between items-center text-[9px] font-black tracking-widest text-gray-400 uppercase">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#2C3032]"></span>
+                                        <span class="w-1 h-1 rounded-full bg-[#2C3032]"></span>
                                         <span>Shared: ¥ {{ getMemberStats(member).shared.toLocaleString() }}</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-[#C5A059]"></span>
+                                        <span class="w-1 h-1 rounded-full bg-[#C5A059]"></span>
                                         <span>Private: ¥ {{ getMemberStats(member).private.toLocaleString() }}</span>
                                     </div>
                                 </div>
@@ -117,12 +115,11 @@
                         <div v-for="(group, date) in groupedExpenses" :key="date" class="mb-6">
                             <div @click="toggleDateCollapse(date)" class="flex justify-between items-center mb-2 px-1 border-b border-gray-100 pb-2 cursor-pointer active:opacity-60 transition-opacity">
                                 <div class="flex items-center gap-2">
-                                    <i class="fas text-[10px] text-gray-300 transition-transform" :class="collapsedDates[date] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
+                                    <i class="fas text-[9px] text-gray-300 transition-transform" :class="collapsedDates[date] ? 'fa-chevron-right' : 'fa-chevron-down'"></i>
                                     <span class="text-[11px] font-black text-gray-400 tracking-widest uppercase">{{ formatDisplayDate(date) }}</span>
                                 </div>
                                 <span class="text-[11px] font-black font-serif text-[#2C3032]">¥ {{ group.total.toLocaleString() }}</span>
                             </div>
-                            
                             <div v-show="!collapsedDates[date]" class="space-y-3 animate-fade-in">
                                 <div v-for="(exp, idx) in group.items" :key="idx" class="member-card !py-4 shadow-sm active:scale-[0.98] transition-transform" @click="openEditExpenseModal(exp)">
                                     <div class="flex justify-between items-center">
@@ -160,10 +157,19 @@
                 </nav>
             </template>
 
-            <div v-if="showAddModal && currentTab === 'money'" class="modal-mask" @click.self="showAddModal = false">
+            <div v-if="showTravelerModal" class="modal-mask" @click.self="showTravelerModal = false">
+                <div class="modal-card !p-8 !max-w-[22rem]">
+                    <h2 class="text-center font-serif font-black text-2xl mb-8 tracking-widest text-[#2C3032]">Travelers</h2>
+                    <div class="space-y-4 mb-8">
+                        <div v-for="(name, index) in tempMembers" :key="index" class="flex items-center gap-4">
+                            <span class="font-serif font-black text-[#C5A059] text-sm w-4">{{ index + 1 }}</span>
+                            <div class="flex-1 relative">
+                                <input v-model="tempMembers[index]" class="premium-input !py-3 !px-6 !bg-gray-100 !rounded-full font-bold">
+                                <button @click="removeTraveler(index)" class="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-200 text-gray-400 text-[10px] flex items-center justify-center"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button @click="addTraveler" class="w-full py-4 border-2 border-dashed border-[#C5A059]/30 rounded-full text-[#C5A059] text-[11px] font-black uppercase tracking-widest">+ Add New Traveler</button>
+                    </div>
+                    <button @click="saveTravelers" class="btn-gold !bg-[#2C3032] !text-white !rounded-2xl py-5 text-sm uppercase tracking-widest">Save Changes</button>
                 </div>
             </div>
-    </div>
-    <script src="app.js"></script>
-</body>
-</html>

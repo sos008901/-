@@ -231,13 +231,13 @@
 
                 <div v-if="currentTab === 'money'" class="p-5 animate-fade-in">
                     <div class="bg-theme-main text-white p-8 rounded-3xl shadow-xl mb-8 relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-theme-accent/20 to-transparent rounded-full blur-2xl"></div>
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-theme-accent/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
                         <div class="relative z-10 text-center">
                             <p class="text-[10px] tracking-[0.4em] text-theme-accent uppercase mb-4">Grand Total</p>
                             <h2 class="text-5xl font-serif mb-2">{{ currencySymbol }} {{ totalExpense.toLocaleString() }}</h2>
                             <p class="text-xs opacity-60 font-mono tracking-wider">≈ NT$ {{ toTWD(totalExpense) }}</p>
                         </div>
-                        <button @click="openTravelerModal" class="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition"><svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></button>
+                        <button @click.stop="openTravelerModal" class="absolute top-4 right-4 w-8 h-8 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition z-20 cursor-pointer"><svg class="w-4 h-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></button>
                     </div>
 
                     <div class="grid grid-cols-1 gap-4 pb-4">

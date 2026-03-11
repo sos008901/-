@@ -1,6 +1,6 @@
 * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; box-sizing: border-box; }
 
-/* 核心：鎖定 body，確保手機工具列不會因為捲動而跳動 */
+/* 核心：徹底鎖定 body，防止整個頁面隨意滑動，確保標題與選單靜止 */
 body { 
     background-color: #F4F2EE; 
     color: #2C3032; 
@@ -21,7 +21,7 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
 [v-cloak] { display: none !important; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 
-/* 設定容器為固定 100dvh 並使用 Flexbox 排版 */
+/* 設定容器為固定 100dvh 的彈性佈局 */
 #app-container { 
     max-width: 480px; 
     margin: 0 auto; 
@@ -31,9 +31,10 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
     position: relative; 
     display: flex; 
     flex-direction: column; 
+    box-shadow: 0 0 50px rgba(0,0,0,0.1); 
 }
 
-/* 頂部 Header：完全靜止，不參與捲動 */
+/* 頂部 Header：固定不動 */
 header {
     padding-top: calc(env(safe-area-inset-top) + 15px) !important;
     padding-bottom: 10px !important;
@@ -42,12 +43,12 @@ header {
     background: #F4F2EE;
 }
 
-/* 核心修改：只有中間這個區域獨立捲動 */
+/* 核心修改：只有中間區域獨立上下滑動 */
 main {
     flex: 1;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch; 
-    padding-bottom: 80px !important; /* 配合精簡後的選單高度 */
+    padding-bottom: 70px !important; /* 縮小底部緩衝，釋放空間給內容 */
     background: transparent;
     touch-action: pan-y; 
 }
@@ -56,10 +57,10 @@ main {
 .btn-base:active { transform: scale(0.95); }
 .icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid #E0E0E0; background: rgba(255,255,255,0.8); color: #5F6368; }
 
-/* 懸浮按鈕：位置調降，緊貼精簡後的選單 */
+/* 懸浮按鈕：位置隨選單縮減同步下移 */
 .fab-btn { 
     position: absolute; 
-    bottom: calc(75px + env(safe-area-inset-bottom)); 
+    bottom: calc(65px + env(safe-area-inset-bottom)); 
     right: 1.5rem; 
     width: 3.5rem; 
     height: 3.5rem; 
@@ -76,16 +77,16 @@ main {
 }
 .fab-btn:active { transform: scale(0.9) rotate(90deg); }
 
-/* 底部選單：極致纖細化並固定靜止 */
+/* 底部選單：大幅降低高度，僅保留最小必要空間 */
 nav.glass-panel { 
     background: rgba(244, 242, 238, 0.98); 
     backdrop-filter: blur(20px); 
     -webkit-backdrop-filter: blur(20px); 
     border-top: 1px solid #E0E0E0; 
     
-    /* 縮減 Padding 讓欄位高度降至最低 */
-    padding-top: 6px !important; 
-    padding-bottom: calc(env(safe-area-inset-bottom) + 6px) !important; 
+    /* 核心修正：將 Padding 縮減至 4px，讓導覽列非常纖細 */
+    padding-top: 4px !important; 
+    padding-bottom: calc(env(safe-area-inset-bottom) + 4px) !important; 
     
     height: auto !important;
     position: relative; 
@@ -97,9 +98,10 @@ nav.glass-panel {
     align-items: center;
 }
 
-/* 為了讓圖示更精確，微調 nav 內的按鈕 */
+/* 確保圖示大小與文字比例協調 */
 nav.glass-panel button {
-    padding: 2px 0;
+    padding: 0;
+    min-height: 44px; /* 符合手機點擊熱區最小建議值 */
 }
 
 .input-rounded { 

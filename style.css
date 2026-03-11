@@ -1,13 +1,13 @@
 * { -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; box-sizing: border-box; }
 
-/* 核心：徹底鎖定 body，防止整個頁面隨意滑動或產生橡皮筋回彈 */
+/* 核心：鎖定 body，確保手機工具列不會因為捲動而跳動 */
 body { 
     background-color: #F4F2EE; 
     color: #2C3032; 
     font-family: 'Noto Serif TC', serif; 
     -webkit-font-smoothing: antialiased; 
     overflow: hidden; 
-    position: fixed; /* 強制固定，防止瀏覽器工具列跳動 */
+    position: fixed; 
     width: 100%; 
     height: 100%; 
     overscroll-behavior: none; 
@@ -21,7 +21,7 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
 [v-cloak] { display: none !important; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 
-/* 設定容器為固定 100dvh 的彈性佈局 */
+/* 設定容器為固定 100dvh 並使用 Flexbox 排版 */
 #app-container { 
     max-width: 480px; 
     margin: 0 auto; 
@@ -33,21 +33,21 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
     flex-direction: column; 
 }
 
-/* 頂部 Header 完全固定 */
+/* 頂部 Header：完全靜止，不參與捲動 */
 header {
-    padding-top: calc(env(safe-area-inset-top) + 20px) !important;
+    padding-top: calc(env(safe-area-inset-top) + 15px) !important;
+    padding-bottom: 10px !important;
     flex-shrink: 0; 
     z-index: 100;
     background: #F4F2EE;
-    border-bottom: 1px solid transparent; /* 預留空間 */
 }
 
-/* 核心修改：中間主內容區獨立滑動，其餘部分靜止 */
+/* 核心修改：只有中間這個區域獨立捲動 */
 main {
     flex: 1;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch; 
-    padding-bottom: 100px !important; /* 配合變薄的導覽列 */
+    padding-bottom: 80px !important; /* 配合精簡後的選單高度 */
     background: transparent;
     touch-action: pan-y; 
 }
@@ -56,10 +56,10 @@ main {
 .btn-base:active { transform: scale(0.95); }
 .icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 9999px; border: 1px solid #E0E0E0; background: rgba(255,255,255,0.8); color: #5F6368; }
 
-/* 懸浮按鈕：位置調整至導覽列上方 */
+/* 懸浮按鈕：位置調降，緊貼精簡後的選單 */
 .fab-btn { 
     position: absolute; 
-    bottom: calc(85px + env(safe-area-inset-bottom)); 
+    bottom: calc(75px + env(safe-area-inset-bottom)); 
     right: 1.5rem; 
     width: 3.5rem; 
     height: 3.5rem; 
@@ -76,25 +76,30 @@ main {
 }
 .fab-btn:active { transform: scale(0.9) rotate(90deg); }
 
-/* 底部導覽列：大幅降低高度並固定於最下方 */
+/* 底部選單：極致纖細化並固定靜止 */
 nav.glass-panel { 
     background: rgba(244, 242, 238, 0.98); 
     backdrop-filter: blur(20px); 
     -webkit-backdrop-filter: blur(20px); 
     border-top: 1px solid #E0E0E0; 
     
-    /* 調整 Padding 讓內容變薄且對稱 */
-    padding-top: 10px !important; 
-    padding-bottom: calc(env(safe-area-inset-bottom) + 10px) !important; 
+    /* 縮減 Padding 讓欄位高度降至最低 */
+    padding-top: 6px !important; 
+    padding-bottom: calc(env(safe-area-inset-bottom) + 6px) !important; 
     
     height: auto !important;
-    position: relative; /* 改回 relative 由 flex 佈局控制 */
+    position: relative; 
     flex-shrink: 0;
     width: 100%;
     z-index: 1000;
     display: flex;
     justify-content: space-around;
     align-items: center;
+}
+
+/* 為了讓圖示更精確，微調 nav 內的按鈕 */
+nav.glass-panel button {
+    padding: 2px 0;
 }
 
 .input-rounded { 

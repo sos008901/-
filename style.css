@@ -5,7 +5,7 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
 [v-cloak] { display: none !important; }
 .bg-washi { background-image: url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); }
 
-/* 固定容器高度並禁止整體滑動，確保只有中間內容區會動 */
+/* 設定容器為固定高度彈性佈局，並禁止整體滑動 */
 #app-container { 
     max-width: 480px; 
     margin: 0 auto; 
@@ -18,19 +18,19 @@ input, select, textarea { font-family: 'Noto Sans TC', sans-serif; user-select: 
     box-shadow: 0 0 50px rgba(0,0,0,0.1); 
 }
 
-/* 頂部固定 Header */
+/* 頂部 Header 固定，不參與滑動 */
 header {
     padding-top: calc(env(safe-area-inset-top) + 20px) !important;
     flex-shrink: 0;
     z-index: 100;
 }
 
-/* 核心修改：設定中間區域獨立滑動 */
+/* 核心修改：中間主內容區獨立滑動 */
 main {
     flex: 1;
     overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch; /* 讓手機滑動手感更順暢 */
-    padding-bottom: 160px !important; /* 增加底部緩衝，避免內容被選單遮住 */
+    -webkit-overflow-scrolling: touch; /* 讓 iOS 滑動手感更順滑 */
+    padding-bottom: 180px !important; /* 增加底部緩衝空間，避免最後一個行程被選單擋住 */
     background: transparent;
 }
 
@@ -41,7 +41,7 @@ main {
 /* 懸浮按鈕固定在選單上方 */
 .fab-btn { 
     position: absolute; 
-    bottom: calc(130px + env(safe-area-inset-bottom)); 
+    bottom: calc(140px + env(safe-area-inset-bottom)); 
     right: 1.5rem; 
     width: 3.5rem; 
     height: 3.5rem; 
@@ -58,20 +58,25 @@ main {
 }
 .fab-btn:active { transform: scale(0.9) rotate(90deg); }
 
-/* 底部導覽列優化：實現對稱間距與位置固定 */
+/* 底部導覽列固定，並優化圖示與區分線的對稱比例 */
 nav.glass-panel { 
     background: rgba(244, 242, 238, 0.98); 
     backdrop-filter: blur(20px); 
     -webkit-backdrop-filter: blur(20px); 
-    border-top: 1px solid #E0E0E0;
-    /* 核心修改：讓區分線到按鈕的距離 (padding-top) 與按鈕到螢幕底部的距離相等 */
-    padding-top: calc(env(safe-area-inset-bottom) + 15px) !important;
-    padding-bottom: calc(env(safe-area-inset-bottom) + 15px) !important; 
+    border-top: 1px solid #E0E0E0; /* 區分線 */
+    
+    /* padding-top 調大將線往上推；padding-bottom 包含安全區域，確保圖示置中 */
+    padding-top: 35px !important; 
+    padding-bottom: calc(env(safe-area-inset-bottom) + 20px) !important; 
+    
     height: auto !important;
     position: absolute;
     bottom: 0;
     width: 100%;
     z-index: 1000;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
 }
 
 .input-rounded { 
